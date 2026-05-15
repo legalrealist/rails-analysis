@@ -1,0 +1,72 @@
+{
+  "total_entries": 618,
+  "document_types": {
+    "Standing Order": 108,
+    "Local Rules": 30,
+    "Administrative Order": 38,
+    "Practice Direction": 4,
+    "Judicial Opinion": 438
+  },
+  "total_orders_rules": 180,
+  "total_opinions": 438,
+  "total_sanctions": 183,
+  "total_warnings": 257,
+  "date_range": {
+    "earliest": "2023-05",
+    "latest": "2026-04"
+  },
+  "states_represented": 55,
+  "unique_judges": 444,
+  "source_breakdown": {
+    "rails": 76,
+    "both": 32,
+    "rg": 510
+  },
+  "ai_type": {
+    "Any AI": 73,
+    "Gen AI": 536,
+    "Gen AI, excluding standard research tools": 8
+  },
+  "link_quality": {
+    "free": 590,
+    "paywalled": 28,
+    "free_pct": 95.5
+  },
+  "rg_tags": {
+    "Applies to AI Used for Filings/Drafting": 608,
+    "Generative AI Usage": 545,
+    "Suggests Cautious Use of AI": 248,
+    "Requires Disclosure and/or Verification": 152,
+    "Court-Imposed Consequences - Attorneys/Law Firms": 116,
+    "Court-Imposed Consequences - Parties": 80,
+    "Any AI Usage": 73,
+    "Applies to AI Used for Research": 50,
+    "Prohibits Use of AI": 2
+  },
+  "top_requirements_in_orders": {
+    "disclose_ai_use_w_each_filing": {
+      "count": 95,
+      "pct": 52.8
+    },
+    "certify_accuracy_w_each_filing_if_ai_used": {
+      "count": 85,
+      "pct": 47.2
+    },
+    "certify_accuracy_non_use_w_each_filing": {
+      "count": 16,
+      "pct": 8.9
+    },
+    "just_a_warning": {
+      "count": 50,
+      "pct": 27.8
+    },
+    "maintain_ai_prompt_records": {
+      "count": 6,
+      "pct": 3.3
+    },
+    "prohibited": {
+      "count": 14,
+      "pct": 7.8
+    }
+  }
+}

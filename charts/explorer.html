@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Court Orders Explorer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; }
+
+.header { background: #1e293b; color: white; padding: 20px 24px; }
+.header h1 { font-size: 22px; font-weight: 600; }
+.header .subtitle { color: #94a3b8; font-size: 14px; margin-top: 4px; }
+
+.controls { background: white; border-bottom: 1px solid #e2e8f0; padding: 16px 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; position: sticky; top: 0; z-index: 10; }
+.search-box { flex: 1; min-width: 250px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+.search-box:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: white; }
+.count { font-size: 13px; color: #64748b; white-space: nowrap; }
+
+.chips { padding: 8px 24px; display: flex; gap: 6px; flex-wrap: wrap; background: white; border-bottom: 1px solid #e2e8f0; }
+.chip { padding: 4px 10px; border-radius: 12px; font-size: 12px; cursor: pointer; border: 1px solid #e2e8f0; background: white; transition: all 0.15s; }
+.chip:hover { background: #f1f5f9; }
+.chip.active { background: #2563eb; color: white; border-color: #2563eb; }
+.chip.active-red { background: #dc2626; color: white; border-color: #dc2626; }
+.chip.active-orange { background: #ea580c; color: white; border-color: #ea580c; }
+.chip.active-green { background: #16a34a; color: white; border-color: #16a34a; }
+
+.layout { display: flex; height: calc(100vh - 180px); }
+.list-pane { width: 55%; overflow-y: auto; border-right: 1px solid #e2e8f0; }
+.detail-pane { width: 45%; overflow-y: auto; padding: 24px; background: white; }
+
+.row { padding: 12px 24px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.1s; display: flex; gap: 12px; align-items: flex-start; }
+.row:hover { background: #f8fafc; }
+.row.selected { background: #eff6ff; border-left: 3px solid #2563eb; }
+
+.row-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; margin-top: 2px; }
+.icon-order { background: #dbeafe; color: #2563eb; }
+.icon-opinion { background: #fee2e2; color: #dc2626; }
+.icon-admin { background: #e0e7ff; color: #4f46e5; }
+.icon-local { background: #d1fae5; color: #16a34a; }
+
+.row-content { flex: 1; min-width: 0; }
+.row-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-meta { font-size: 12px; color: #64748b; margin-top: 2px; display: flex; gap: 8px; flex-wrap: wrap; }
+.row-meta span { white-space: nowrap; }
+
+.badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.badge-sanctions { background: #fee2e2; color: #dc2626; }
+.badge-warning { background: #fff7ed; color: #ea580c; }
+.badge-order { background: #dbeafe; color: #2563eb; }
+
+.detail-empty { color: #94a3b8; text-align: center; margin-top: 100px; }
+.detail-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; line-height: 1.4; }
+.detail-meta { display: grid; grid-template-columns: 120px 1fr; gap: 8px; font-size: 13px; margin-bottom: 20px; }
+.detail-meta dt { color: #64748b; font-weight: 500; }
+.detail-meta dd { color: #1e293b; }
+.detail-link { display: inline-block; padding: 8px 16px; background: #2563eb; color: white; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500; margin: 16px 0; }
+.detail-link:hover { background: #1d4ed8; }
+
+.detail-section { margin-top: 20px; }
+.detail-section h3 { font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.req-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.req-tag { padding: 3px 8px; background: #f1f5f9; border-radius: 4px; font-size: 12px; color: #475569; }
+.req-tag.active { background: #dbeafe; color: #1e40af; }
+
+.summary-text { font-size: 14px; line-height: 1.7; color: #334155; white-space: pre-wrap; }
+
+.tag-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.tag-pill { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.tag-pill.sector { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.link-free { color: #16a34a; }
+.link-paywalled { color: #dc2626; }
+.link-none { color: #94a3b8; }
+
+@media (max-width: 900px) {
+  .layout { flex-direction: column; height: auto; }
+  .list-pane, .detail-pane { width: 100%; }
+  .list-pane { max-height: 50vh; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>AI Court Orders Explorer</h1>
+  <div class="subtitle">663 court orders and opinions on AI use in legal proceedings (May 2023 &ndash; May 2026)</div>
+</div>
+
+<div class="controls">
+  <input class="search-box" type="text" id="search" placeholder="Search by judge, court, state, keyword...">
+  <select id="typeFilter">
+    <option value="">All Types</option>
+    <option value="Standing Order">Standing Orders</option>
+    <option value="Local Rules">Local Rules</option>
+    <option value="Administrative Order">Administrative Orders</option>
+    <option value="Judicial Opinion">Judicial Opinions</option>
+    <option value="Practice Direction">Practice Directions</option>
+  </select>
+  <select id="stateFilter">
+    <option value="">All States</option>
+  </select>
+  <select id="consequenceFilter">
+    <option value="">All Outcomes</option>
+    <option value="sanctions_attorney">Sanctions (Attorney)</option>
+    <option value="sanctions_party">Sanctions (Party)</option>
+    <option value="warning">Warning Only</option>
+    <option value="none">No Consequence</option>
+  </select>
+  <select id="tagFilter">
+    <option value="">All Sectors</option>
+  </select>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="chips" id="chips">
+  <span class="chip" data-filter="has_link">Has Link</span>
+  <span class="chip" data-filter="has_summary">Has Summary</span>
+  <span class="chip" data-filter="req_disclose">Requires Disclosure</span>
+  <span class="chip" data-filter="req_certify">Requires Certification</span>
+  <span class="chip" data-filter="req_prompts">Prompt Retention</span>
+  <span class="chip" data-filter="prohibited">Prohibits AI</span>
+  <span class="chip" data-filter="pro_se">Pro Se</span>
+  <span class="chip" data-filter="attorney">Attorney</span>
+</div>
+
+<div class="layout">
+  <div class="list-pane" id="list"></div>
+  <div class="detail-pane" id="detail">
+    <div class="detail-empty">Select an order to view details</div>
+  </div>
+</div>
+
+<script>
+let DATA = [];
+let filtered = [];
+let selectedId = null;
+let activeChips = new Set();
+
+const REQ_LABELS = {
+  disclose: 'Disclose AI Use',
+  tool: 'Disclose Tool Used',
+  how: 'Disclose How Used',
+  sections: 'ID Sections Drafted',
+  verify: 'Verify Accuracy Process',
+  certify_all: 'Certify Accuracy/Non-Use (All Filings)',
+  certify_if_ai: 'Certify Accuracy (If AI Used)',
+  prompts: 'Retain AI Prompts',
+  proprietary: 'Protect Proprietary Info',
+  prohibited: 'Prohibits AI Use',
+  warning: 'Just a Warning',
+  rules: 'References Procedural Rules',
+  evidence: 'Disclose AI Evidence',
+};
+
+function iconClass(type) {
+  if (type === 'Standing Order') return 'icon-order';
+  if (type === 'Judicial Opinion') return 'icon-opinion';
+  if (type === 'Administrative Order') return 'icon-admin';
+  return 'icon-local';
+}
+
+function iconChar(type) {
+  if (type === 'Standing Order') return 'SO';
+  if (type === 'Judicial Opinion') return 'JO';
+  if (type === 'Administrative Order') return 'AO';
+  if (type === 'Local Rules') return 'LR';
+  return 'PD';
+}
+
+function consequenceBadge(c) {
+  if (c === 'sanctions_attorney') return '<span class="badge badge-sanctions">Sanctions (Attorney)</span>';
+  if (c === 'sanctions_party') return '<span class="badge badge-sanctions">Sanctions (Party)</span>';
+  if (c === 'warning') return '<span class="badge badge-warning">Warning</span>';
+  return '';
+}
+
+function matchesSearch(d, q) {
+  if (!q) return true;
+  const terms = q.toLowerCase().split(/\s+/);
+  const tags = Array.isArray(d.applicableTo) ? d.applicableTo.join(' ') : '';
+  const haystack = [d.judge, d.court, d.state, d.name, d.summary, d.type, d.ai_type, d.applies_to, tags].join(' ').toLowerCase();
+  return terms.every(t => haystack.includes(t));
+}
+
+function matchesChips(d) {
+  for (const chip of activeChips) {
+    if (chip === 'has_link' && !d.link) return false;
+    if (chip === 'has_summary' && !d.summary) return false;
+    if (chip === 'req_disclose' && !d.reqs.disclose) return false;
+    if (chip === 'req_certify' && !d.reqs.certify_all && !d.reqs.certify_if_ai) return false;
+    if (chip === 'req_prompts' && !d.reqs.prompts) return false;
+    if (chip === 'prohibited' && !d.reqs.prohibited) return false;
+    if (chip === 'pro_se' && !(d.applies_to || '').includes('Pro Se')) return false;
+    if (chip === 'attorney' && !(d.applies_to || '').includes('Attorney')) return false;
+  }
+  return true;
+}
+
+function applyFilters() {
+  const q = document.getElementById('search').value;
+  const typeF = document.getElementById('typeFilter').value;
+  const stateF = document.getElementById('stateFilter').value;
+  const conseqF = document.getElementById('consequenceFilter').value;
+  const tagF = document.getElementById('tagFilter').value;
+
+  filtered = DATA.filter(d => {
+    if (!matchesSearch(d, q)) return false;
+    if (typeF && d.type !== typeF) return false;
+    if (stateF && d.state !== stateF) return false;
+    if (conseqF === 'none' && d.consequence) return false;
+    if (conseqF && conseqF !== 'none' && d.consequence !== conseqF) return false;
+    if (tagF && !(Array.isArray(d.applicableTo) && d.applicableTo.includes(tagF))) return false;
+    if (!matchesChips(d)) return false;
+    return true;
+  });
+
+  document.getElementById('count').textContent = `${filtered.length} of ${DATA.length}`;
+  renderList();
+}
+
+function renderList() {
+  const list = document.getElementById('list');
+  // Virtual-ish render: show up to 200, add "load more" if needed
+  const show = filtered.slice(0, 500);
+  list.innerHTML = show.map(d => `
+    <div class="row ${d.id === selectedId ? 'selected' : ''}" data-id="${d.id}">
+      <div class="row-icon ${iconClass(d.type)}">${iconChar(d.type)}</div>
+      <div class="row-content">
+        <div class="row-title">${esc(d.judge || d.name || 'Unknown')}</div>
+        <div class="row-meta">
+          <span>${esc(d.court)}</span>
+          <span>${d.date || 'No date'}</span>
+          <span>${esc(d.type)}</span>
+          ${consequenceBadge(d.consequence)}
+        </div>
+        ${Array.isArray(d.applicableTo) && d.applicableTo.length ? `<div class="row-meta" style="margin-top:3px;">${d.applicableTo.slice(0,3).map(t => `<span style="font-size:10px;padding:1px 5px;background:#eff6ff;color:#1d4ed8;border-radius:8px;">${esc(t)}</span>`).join('')}${d.applicableTo.length > 3 ? `<span style="font-size:10px;color:#94a3b8;">+${d.applicableTo.length-3}</span>` : ''}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.row').forEach(el => {
+    el.addEventListener('click', () => {
+      selectedId = parseInt(el.dataset.id);
+      renderDetail(DATA[selectedId]);
+      list.querySelectorAll('.row').forEach(r => r.classList.remove('selected'));
+      el.classList.add('selected');
+    });
+  });
+}
+
+function renderDetail(d) {
+  const panel = document.getElementById('detail');
+  const reqsHtml = Object.keys(REQ_LABELS).map(k => {
+    const active = d.reqs[k] ? 'active' : '';
+    const val = d.reqs[k] ? ` (${esc(d.reqs[k])})` : '';
+    return `<span class="req-tag ${active}">${REQ_LABELS[k]}${active ? val : ''}</span>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="detail-title">${esc(d.judge || d.name || 'Unknown')}</div>
+    <dl class="detail-meta">
+      <dt>Court</dt><dd>${esc(d.court)}</dd>
+      <dt>State</dt><dd>${esc(d.state)}</dd>
+      <dt>Date</dt><dd>${d.date || 'Unknown'}</dd>
+      <dt>Type</dt><dd>${esc(d.type)} ${consequenceBadge(d.consequence)}</dd>
+      <dt>AI Type</dt><dd>${esc(d.ai_type)}</dd>
+      <dt>Applies To</dt><dd>${esc(d.applies_to)}</dd>
+      <dt>Source</dt><dd>${d.source === 'both' ? 'RAILS + Ropes & Gray' : d.source === 'rails' ? 'RAILS (Duke Law)' : 'Ropes & Gray'}</dd>
+    </dl>
+    ${Array.isArray(d.applicableTo) && d.applicableTo.length ? `
+      <div class="detail-section">
+        <h3>Applicable Sectors</h3>
+        <div class="tag-pills">${d.applicableTo.map(t => `<span class="tag-pill sector">${esc(t)}</span>`).join('')}</div>
+      </div>` : ''}
+    ${d.link ? `<a class="detail-link" href="${esc(d.link)}" target="_blank" rel="noopener">View Original Order &rarr;</a>` : '<div style="color:#94a3b8;font-size:13px;margin:16px 0;">No link to original available</div>'}
+    ${d.name ? `<div class="detail-section"><h3>Document</h3><div style="font-size:14px;color:#334155;">${esc(d.name)}</div></div>` : ''}
+    <div class="detail-section">
+      <h3>Requirements</h3>
+      <div class="req-grid">${reqsHtml}</div>
+    </div>
+    ${d.summary ? `<div class="detail-section"><h3>Summary</h3><div class="summary-text">${esc(d.summary)}</div></div>` : ''}
+  `;
+}
+
+function esc(s) {
+  if (!s) return '';
+  const el = document.createElement('span');
+  el.textContent = s;
+  return el.innerHTML;
+}
+
+// Init
+fetch('../data/processed/explorer_data.json')
+  .then(r => r.json())
+  .then(data => {
+    DATA = data;
+    // Populate state filter
+    const states = [...new Set(data.map(d => d.state).filter(s => s && s !== '-'))].sort();
+    const sel = document.getElementById('stateFilter');
+    states.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s; opt.textContent = s;
+      sel.appendChild(opt);
+    });
+    // Populate sector/tag filter from applicableTo
+    const allTags = new Set();
+    data.forEach(d => { if (Array.isArray(d.applicableTo)) d.applicableTo.forEach(t => allTags.add(t)); });
+    const tagSel = document.getElementById('tagFilter');
+    [...allTags].sort().forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t; opt.textContent = t;
+      tagSel.appendChild(opt);
+    });
+    applyFilters();
+  });
+
+document.getElementById('search').addEventListener('input', applyFilters);
+document.getElementById('typeFilter').addEventListener('change', applyFilters);
+document.getElementById('stateFilter').addEventListener('change', applyFilters);
+document.getElementById('consequenceFilter').addEventListener('change', applyFilters);
+document.getElementById('tagFilter').addEventListener('change', applyFilters);
+
+document.getElementById('chips').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  const f = chip.dataset.filter;
+  if (activeChips.has(f)) {
+    activeChips.delete(f);
+    chip.classList.remove('active', 'active-red', 'active-orange', 'active-green');
+  } else {
+    activeChips.add(f);
+    if (f === 'prohibited') chip.classList.add('active-red');
+    else if (f === 'pro_se' || f === 'attorney') chip.classList.add('active-orange');
+    else chip.classList.add('active');
+  }
+  applyFilters();
+});
+</script>
+</body>
+</html>

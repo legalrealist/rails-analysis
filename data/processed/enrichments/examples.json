@@ -1,0 +1,73 @@
+[
+  {
+    "rg_summary": "This standing order refers generally to \u201cArtificial Intelligence (\u2018AI\u2019)\u201d and requires disclosure if any AI is \u201cused . . . in the preparation of any complaint, answer, motion, brief, or other paper,\u201d and certification that all legal citations were verified as accurate. The use of the phrase \u201cpreparation\u201d (as opposed to \u201cfiling\u201d or \u201cdrafting\u201d) could indicate that disclosure and verification are required when AI tools are used in any part of the preparatory process, including research.",
+    "rg_tags": "Any AI Usage, Requires Disclosure and/or Verification, Applies to AI Used for Research, Applies to AI Used for Filings/Drafting",
+    "document_type": "Standing Order",
+    "order_type": "Judge Level",
+    "case_types": "Criminal,Civil",
+    "ai_type": "Any AI",
+    "ai_use_case_for_filings": "Prepare",
+    "disclose_ai_use_w_each_filing": "Yes",
+    "certify_accuracy_non_use_w_each_filing": "No",
+    "certify_accuracy_w_each_filing_if_ai_used": "checked",
+    "references_other_procedural_rules": "No",
+    "applies_to": "Pro Se Litigants,Attorneys"
+  },
+  {
+    "rg_summary": "This standing order is limited to filings drafted using generative AI. It requires that such filings be accompanied by a disclosure identifying the AI tool used and the portions of the filing drafted using GenAI. Additionally, the order requires a certification that no confidential information has been disclosed to an unauthorized party through use of GenAI tools.",
+    "rg_tags": "Generative AI Usage, Requires Disclosure and/or Verification, Applies to AI Used for Filings/Drafting",
+    "document_type": "Standing Order",
+    "order_type": "Judge Level",
+    "case_types": "Civil",
+    "ai_type": "Gen AI",
+    "ai_use_case_for_filings": "Draft",
+    "disclose_ai_use_w_each_filing": "Yes",
+    "disclose_ai_tool_used": "checked",
+    "identify_sections_drafted_with_ai": "checked",
+    "certify_accuracy_non_use_w_each_filing": "No",
+    "references_other_procedural_rules": "USCIT 7(b),USCIT 5(g)",
+    "proprietary_info_nondisclosure_req": "checked",
+    "applies_to": "Any Parties"
+  },
+  {
+    "rg_summary": "Specifically in the context of orders granting requests to admit counsel pro hac vice, Judge Molloy has issued at least one such order in which he specifies that pro hac counsel \u201cshall do his or her own work\u201d and that \u201c[u]se of artificial intelligence automated drafting programs, such as Chat GPT, is prohibited.\u201d This language seems to refer to generative AI tools, although the broad scope of the language may indicate that the prohibition applies to research as well as drafting/filing. Notably, some of Judge Molloy\u2019s more recent orders have not included this prohibition on the use of GenAI. At",
+    "rg_tags": "Generative AI Usage, Prohibits Use of AI, Applies to AI Used for Research, Applies to AI Used for Filings/Drafting",
+    "document_type": "Court Order",
+    "order_type": "Case Level",
+    "case_types": "Civil",
+    "ai_type": "Any AI",
+    "ai_use_case_for_filings": "Draft",
+    "prohibited": "checked",
+    "disclose_ai_use_w_each_filing": "No",
+    "certify_accuracy_non_use_w_each_filing": "No",
+    "references_other_procedural_rules": "No",
+    "applies_to": "Pro Hac Vice Counsel"
+  },
+  {
+    "rg_summary": "This standing order refers generally to \u201cartificial intelligence\u201d and \u201cAI,\u201d requiring disclosure of the use of any \u201cAI tool\u201d for \u201cresearch and/or drafting.\u201d The order appears to imply that this disclosure should be in the form of a certification, as it says that \u201ca certification on a filing will be deemed as a representation\u201d that the filer has verified all cited legal authorities in a given document.",
+    "rg_tags": "Any AI Usage, Requires Disclosure and/or Verification, Applies to AI Used for Research, Applies to AI Used for Filings/Drafting",
+    "document_type": "Standing Order",
+    "order_type": "Judge Level",
+    "case_types": "Civil",
+    "ai_type": "Any AI",
+    "ai_use_case_for_filings": "Draft,Research",
+    "disclose_ai_use_w_each_filing": "Yes",
+    "certify_accuracy_non_use_w_each_filing": "No",
+    "references_other_procedural_rules": "FRCP 11",
+    "applies_to": "Any Parties"
+  },
+  {
+    "rg_summary": "This standing order does not use the phrase \u201cartificial intelligence\u201d but explicitly refers to generative AI programs by cautioning counsel about the use of \u201cChatGPT or other such tools,\u201d reminding lawyers of the need to check the accuracy of output. It does not impose any limitations on the use of such tools.",
+    "rg_tags": "Generative AI Usage, Suggests Cautious Use of AI",
+    "document_type": "Standing Order",
+    "order_type": "Judge Level",
+    "case_types": "Civil",
+    "ai_type": "Gen AI",
+    "ai_use_case_for_filings": "Research",
+    "disclose_ai_use_w_each_filing": "No",
+    "certify_accuracy_non_use_w_each_filing": "No",
+    "just_a_warning": "checked",
+    "references_other_procedural_rules": "No",
+    "applies_to": "Attorneys"
+  }
+]
