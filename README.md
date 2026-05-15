@@ -53,10 +53,6 @@ python3 scripts/apply_cl_links.py
 python3 scripts/analysis.py
 ```
 
-## Project Retrospective
-
-See [RETROSPECTIVE.md](RETROSPECTIVE.md) for lessons learned on building data viz tools with AI assistance.
-
 ## License
 
 Data sourced from public court records via RAILS and Ropes & Gray. Scripts and analysis are open source.
