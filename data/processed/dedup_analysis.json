@@ -1,0 +1,104 @@
+[
+  {
+    "pair": [29, 35],
+    "recommendation": "KEEP_BOTH",
+    "reason": "Legitimately different standing orders — [29] governs civil cases and [35] governs criminal cases, with distinct document links (MJN Standing Civil Order vs. MJN Standing Criminal Order). Same AI rules apply in both, but they are separate governing instruments for different case types."
+  },
+  {
+    "pair": [46, 54],
+    "recommendation": "MERGE",
+    "keep": 46,
+    "remove": 54,
+    "reason": "Same underlying document (same link URL differing only by a cache-busting query string '?cb=aac0e368'), same court/judge/date, and same type. Entry [46] has a richer summary that mentions both the certification requirement and the AI misuse consequences, while [54]'s summary only mentions the warning. Entry [46] also has a cleaner link without the cache-busting parameter."
+  },
+  {
+    "pair": [88, 89],
+    "recommendation": "KEEP_BOTH",
+    "reason": "Legitimately different rules — [88] is Local Civil Rule LR 7.2(f) from the civil rules document (CIVRULES.pdf) and [89] is Local Criminal Rule LCrR 47.2(e) from the criminal rules document (CRIMRULES.pdf). Different rule numbers, different source documents, and govern different proceedings (civil vs. criminal)."
+  },
+  {
+    "pair": [151, 162],
+    "recommendation": "KEEP_BOTH",
+    "reason": "Different cases before the same judge. [151] is Hardy v. Jones (No. 25-12718, Mar. 23, 2026) involving fake quotations and a threatened dismissal sanction, while [162] is Killebrew v. McKiddy (No. 2:2026cv10373, Mar. 18, 2026) involving improper filings and a GenAI citation warning. Distinct dockets, different dates within the month, and different factual circumstances."
+  },
+  {
+    "pair": [144, 175],
+    "recommendation": "KEEP_BOTH",
+    "reason": "Different cases before the same judge. [144] is Wallace v. Pennymac Loan Services (No. 2:25-cv-02297, Mar. 26, 2026) involving fake citations and fabricated quotations, while [175] is Taylor v. Las Vegas Metro. Police Dep't (No. 2:25-cv-00840, Mar. 13, 2026) involving hallucinogenic citations. Distinct case numbers, different dates within the month, and different parties/facts."
+  },
+  {
+    "pair": [133, 185],
+    "recommendation": "KEEP_BOTH",
+    "reason": "Different cases before the same judge. [133] is Williams v. Crystal Springs Apts. LLC (Mar. 30, 2026) involving a pro se plaintiff's amended complaint and an order requiring a separate AI declaration for future filings, while [185] is Hunter v. TForce Freight Inc. (No. CV-26-00122, Mar. 10, 2026) involving a reminder to comply with AI policy in connection with a motion to dismiss. Distinct case numbers, different dates within the month, different parties, and different outcomes."
+  },
+  {
+    "pair": [175, 191],
+    "recommendation": "KEEP_BOTH",
+    "reason": "Different cases before the same judge. [175] is Taylor v. Las Vegas Metro. Police Dep't (No. 2:25-cv-00840, Mar. 13, 2026) and [191] is Harwell v. WestCare Nev., Inc. (No. 2:25-cv-00689, Mar. 6, 2026). Distinct case numbers, different parties, and different factual circumstances (different motions and outcomes). Note: [175] also appears in pair [144, 175]."
+  },
+  {
+    "pair": [228, 235],
+    "recommendation": "KEEP_BOTH",
+    "reason": "Different cases decided by the same panel. [228] is Picon-Diaz v. Bondi (No. 25-9530, Feb. 13, 2026) where counsel relied on a nonexistent citation multiple times and Judge Kelly disregarded the reliance, while [235] is Chumpitaz-Morales v. Bondi (No. 25-9527, Feb. 11, 2026) involving a pro se petitioner who misrepresented cited cases with Judge Baldock authoring the opinion. Different case numbers, different petitioners, different dates, and different authoring judges."
+  },
+  {
+    "pair": [254, 258],
+    "recommendation": "KEEP_BOTH",
+    "reason": "Legitimately different entries. [254] is a judicial opinion (Rako v. VMware LLC) describing case-specific orders issued Nov. 25, 2025 and Feb. 4, 2026 requiring per-citation AI footnotes and a meet-and-confer process. [258] is a standing order (Judge van Keulen's updated Civil and Discovery Referral Matters Standing Order dated Feb. 2, 2026) setting out general court-wide procedures for all civil matters. Different document types, different links, and different scope (one case-specific, one court-wide)."
+  },
+  {
+    "pair": [329, 335],
+    "recommendation": "KEEP_BOTH",
+    "reason": "Different cases before the same judge. [329] is Burlingame v. Argo Priv. Client Grp. (Dec. 17, 2025) involving transfer to another district and a noted but unimposed sanctions threat, while [335] is In re Zimmer M/L Taper HIP Prosthesis (No. 18-MD-2859, Dec. 16, 2025) involving actually imposed sanctions for AI hallucinations. Distinct cases, different dockets, and materially different outcomes."
+  },
+  {
+    "pair": [309, 346],
+    "recommendation": "KEEP_BOTH",
+    "reason": "Different opinions in the same underlying case (NG v. Amguard Ins. Co.) but at different points in the litigation. [346] is the earlier Dec. 12, 2025 order (Matthew NG, addressing an inaccurate citation in a letter motion and setting briefing deadlines), while [309] is the later Dec. 29, 2025 order (Brian NG, addressing a fake case citation and referencing Judge Broderick's updated Individual Rules). Both entries reference the same docket link but concern separate orders with distinct LEXIS citations and different substantive content."
+  },
+  {
+    "pair": [343, 356],
+    "recommendation": "KEEP_BOTH",
+    "reason": "Different cases before the same judge. [343] is Williams v. Assistant DA John R. Canavan (Dec. 15, 2025) involving a civil pro se plaintiff whose AI hallucinations prompted a sanctions warning, while [356] is United States v. Boehm (2025 U.S. Dist. LEXIS 235285) involving a criminal pro se defendant using AI for a supervised release filing with a required future affidavit. Distinct cases (civil vs. criminal), different parties, different dockets, and different outcomes."
+  },
+  {
+    "pair": [435, 442],
+    "recommendation": "KEEP_BOTH",
+    "reason": "Different cases before the same judge. [435] is Button v. Jimison (No. 3:25-cv-05622, Oct. 17, 2025) where the court required a signed certification on all future filings that cited decisions are valid, while [442] is Reed v. Community Health Care (No. 3:25-cv-05228, Oct. 14, 2025) involving a similar but independently issued certification requirement for continued fictitious case law use. Distinct case numbers, different parties, and different dates."
+  },
+  {
+    "pair": [74, 624],
+    "recommendation": "MERGE",
+    "keep": 74,
+    "remove": 624,
+    "reason": "Same underlying administrative order (Judge McGee's order for Cabarrus County/Judicial District 25, July 2024) from the same source link (ropesgray.com North Carolina tracker). Entry [74] has a significantly richer and more detailed summary covering HITL oversight, recording/transcription rules, juror prohibitions, evidence disclosure timelines, and sanction provisions. Entry [624] has a shorter summary focusing mainly on the definitions and three use-case categories. Both are the same court, same judge, same date, same source, and same link."
+  },
+  {
+    "pair": [61, 635],
+    "recommendation": "MERGE",
+    "keep": 61,
+    "remove": 635,
+    "reason": "Same underlying order (Judge Russo's certification requirement for Cuyahoga County Common Pleas Court, March 2024). Both entries have near-identical summaries and the same link (cp.cuyahogacounty domain, though [61] uses .us and [635] uses .gov — both resolve to the same court resource). Entry [61] is typed as 'Standing Order' while [635] is typed as 'Local Rules'; the content describes a standing certification requirement, so 'Standing Order' in [61] is the more accurate classification. Summaries are substantively identical."
+  },
+  {
+    "pair": [57, 644],
+    "recommendation": "MERGE",
+    "keep": 57,
+    "remove": 644,
+    "reason": "Same underlying standing order (Judge Hanlon's Chautauqua County courtroom rules, February 2024) from the same source link (ropesgray.com New York tracker). Both entries have identical summaries word-for-word, same court, same judge, same date, same type, and the same link. Entry [57] is the original 'rails' source and [644] is the 'rg' duplicate."
+  },
+  {
+    "pair": [49, 647],
+    "recommendation": "MERGE",
+    "keep": 49,
+    "remove": 647,
+    "reason": "Same underlying standing order (Judge Knill's Orange County standing order, January 2024) linking to the same document (occourts.org knillprocedures.pdf). Both entries have identical summaries word-for-word, same court, same judge, same date, same type, and the same link. Entry [49] is the original 'rails' source and [647] is the 'rg' duplicate."
+  },
+  {
+    "pair": [14, 658],
+    "recommendation": "MERGE",
+    "keep": 14,
+    "remove": 658,
+    "reason": "Same underlying administrative order (OAH Idaho policies manual, July 2023) linking to the same document (oah.idaho.gov Policies-Manual-12.31.23.pdf). Both entries have identical summaries word-for-word, same court, same judge, same date, same type, and the same link. Entry [14] is the original 'rails' source and [658] is the 'rg' duplicate."
+  }
+]

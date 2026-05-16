@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
-"""Basic analysis and charts for the enriched AI court orders dataset."""
+"""Analysis and charts for the AI court orders dataset (reads from JSON)."""
 
-import csv
 import json
 import os
 from collections import Counter, defaultdict
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
-INPUT = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'orders_enriched.csv')
+INPUT = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'explorer_data.json')
 CHARTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'charts')
 ANALYSIS_DIR = os.path.join(os.path.dirname(__file__), '..', 'data', 'analysis')
 
@@ -24,26 +22,56 @@ COLORS = {
     'gray': '#6b7280',
     'lightblue': '#93c5fd',
     'lightred': '#fca5a5',
+    'teal': '#0d9488',
+    'amber': '#d97706',
+}
+
+ORDER_TYPES = ('Standing Order', 'Local Rules', 'Administrative Order', 'Practice Direction')
+
+SANCTION_TYPE_LABELS = {
+    'monetary': 'Monetary',
+    'dismissal': 'Dismissal',
+    'striking': 'Striking',
+    'bar_referral': 'Bar Referral',
+    'cle': 'CLE Required',
+    'show_cause': 'Show Cause',
+    'admonishment': 'Admonishment',
+    'contempt': 'Contempt',
 }
 
 
 def load_data():
     with open(INPUT, encoding='utf-8') as f:
-        return list(csv.DictReader(f))
+        return json.load(f)
+
+
+def is_order(r):
+    return r['type'] in ORDER_TYPES
+
+
+def is_opinion(r):
+    return r['type'] == 'Judicial Opinion'
+
+
+def is_sanction(r):
+    return r.get('consequence', '') in ('sanctions_party', 'sanctions_attorney')
+
+
+def is_warning(r):
+    return r.get('consequence', '') == 'warning'
 
 
 def orders_vs_opinions_by_month(rows):
-    """Bar chart: new standing orders vs judicial opinions per month."""
     orders_by_month = Counter()
     opinions_by_month = Counter()
 
     for r in rows:
-        ym = r['date_yyyy_mm']
+        ym = r.get('date', '')
         if not ym:
             continue
-        if r['document_type'] in ('Standing Order', 'Local Rules', 'Administrative Order', 'Practice Direction'):
+        if is_order(r):
             orders_by_month[ym] += 1
-        elif r['document_type'] == 'Judicial Opinion':
+        elif is_opinion(r):
             opinions_by_month[ym] += 1
 
     all_months = sorted(set(list(orders_by_month.keys()) + list(opinions_by_month.keys())))
@@ -75,23 +103,21 @@ def orders_vs_opinions_by_month(rows):
 
 
 def cumulative_growth(rows):
-    """Line chart: cumulative standing orders and opinions over time."""
     orders_by_month = Counter()
     opinions_by_month = Counter()
 
     for r in rows:
-        ym = r['date_yyyy_mm']
+        ym = r.get('date', '')
         if not ym:
             continue
-        if r['document_type'] in ('Standing Order', 'Local Rules', 'Administrative Order', 'Practice Direction'):
+        if is_order(r):
             orders_by_month[ym] += 1
-        elif r['document_type'] == 'Judicial Opinion':
+        elif is_opinion(r):
             opinions_by_month[ym] += 1
 
     all_months = sorted(set(list(orders_by_month.keys()) + list(opinions_by_month.keys())))
 
-    cum_orders = []
-    cum_opinions = []
+    cum_orders, cum_opinions = [], []
     total_o, total_p = 0, 0
     for m in all_months:
         total_o += orders_by_month.get(m, 0)
@@ -124,17 +150,16 @@ def cumulative_growth(rows):
 
 
 def by_state(rows):
-    """Horizontal bar: top 20 states by total activity, split by type."""
     state_orders = Counter()
     state_opinions = Counter()
 
     for r in rows:
-        st = r['state']
+        st = r.get('state', '')
         if not st or st == '-':
             continue
-        if r['document_type'] in ('Standing Order', 'Local Rules', 'Administrative Order', 'Practice Direction'):
+        if is_order(r):
             state_orders[st] += 1
-        elif r['document_type'] == 'Judicial Opinion':
+        elif is_opinion(r):
             state_opinions[st] += 1
 
     all_states = set(list(state_orders.keys()) + list(state_opinions.keys()))
@@ -169,8 +194,7 @@ def by_state(rows):
 
 
 def document_type_breakdown(rows):
-    """Pie chart of document types."""
-    dt = Counter(r['document_type'] for r in rows if r['document_type'])
+    dt = Counter(r['type'] for r in rows if r.get('type'))
 
     fig = go.Figure(go.Pie(
         labels=list(dt.keys()),
@@ -189,34 +213,28 @@ def document_type_breakdown(rows):
 
 
 def requirements_heatmap(rows):
-    """Heatmap: which requirements do standing orders impose?"""
-    orders = [r for r in rows if r['document_type'] in ('Standing Order', 'Local Rules', 'Administrative Order')]
+    orders = [r for r in rows if is_order(r)]
 
     req_cols = [
-        ('Disclose AI use', 'disclose_ai_use_w_each_filing'),
-        ('Disclose tool used', 'disclose_ai_tool_used'),
-        ('Disclose how used', 'disclose_how_ai_tool_used'),
-        ('ID sections drafted', 'identify_sections_drafted_with_ai'),
-        ('Verify accuracy process', 'disclose_process_used_to_check_accuracy'),
-        ('Certify accuracy/non-use\n(each filing)', 'certify_accuracy_non_use_w_each_filing'),
-        ('Certify accuracy\n(if AI used)', 'certify_accuracy_w_each_filing_if_ai_used'),
-        ('Certify no unauthorized\ndisclosure', 'certify_no_unauthorized_disclosure'),
-        ('Retain AI prompts', 'maintain_ai_prompt_records'),
-        ('Protect proprietary info', 'proprietary_info_nondisclosure_req'),
-        ('Just a warning', 'just_a_warning'),
+        ('Disclose AI use', 'disclose'),
+        ('Disclose tool used', 'tool'),
+        ('Disclose how used', 'how'),
+        ('ID sections drafted', 'sections'),
+        ('Verify accuracy process', 'verify'),
+        ('Certify accuracy/non-use\n(each filing)', 'certify_all'),
+        ('Certify accuracy\n(if AI used)', 'certify_if_ai'),
+        ('Certify no unauthorized\ndisclosure', 'evidence'),
+        ('Retain AI prompts', 'prompts'),
+        ('Protect proprietary info', 'proprietary'),
+        ('Just a warning', 'warning'),
         ('Prohibits AI', 'prohibited'),
-        ('References FRCP 11+', 'references_other_procedural_rules'),
+        ('References FRCP 11+', 'rules'),
     ]
 
     labels = [l for l, _ in req_cols]
     counts = []
-    for label, col in req_cols:
-        if col == 'references_other_procedural_rules':
-            c = sum(1 for r in orders if r.get(col, '') and r[col] != 'No')
-        elif col in ('disclose_ai_use_w_each_filing', 'certify_accuracy_non_use_w_each_filing'):
-            c = sum(1 for r in orders if r.get(col, '') == 'Yes')
-        else:
-            c = sum(1 for r in orders if r.get(col, '') and r[col] not in ('No', ''))
+    for label, key in req_cols:
+        c = sum(1 for r in orders if r.get('reqs', {}).get(key))
         counts.append(c)
 
     pcts = [100 * c / len(orders) if orders else 0 for c in counts]
@@ -240,21 +258,20 @@ def requirements_heatmap(rows):
 
 
 def enforcement_analysis(rows):
-    """Bar chart: enforcement with/without standing orders."""
     judges = defaultdict(lambda: {'orders': [], 'opinions': []})
     for r in rows:
-        ln = r['judge_last_name'].lower().strip()
-        court = r['court_abbreviation'].strip()
-        if not ln:
+        j = r.get('judge', '').lower().strip()
+        court = r.get('court', '').strip()
+        if not j:
             continue
-        key = (ln, court)
-        if r['document_type'] in ('Standing Order', 'Local Rules', 'Administrative Order', 'Practice Direction'):
+        key = (j, court)
+        if is_order(r):
             judges[key]['orders'].append(r)
-        elif r['document_type'] == 'Judicial Opinion':
+        elif is_opinion(r):
             judges[key]['opinions'].append(r)
 
     districts_with_orders = set()
-    for (ln, court), v in judges.items():
+    for (j, court), v in judges.items():
         if v['orders'] and court:
             districts_with_orders.add(court)
 
@@ -262,7 +279,7 @@ def enforcement_analysis(rows):
                   'Same district': {'sanctions': 0, 'warning': 0, 'other': 0},
                   'No order': {'sanctions': 0, 'warning': 0, 'other': 0}}
 
-    for (ln, court), v in judges.items():
+    for (j, court), v in judges.items():
         for op in v['opinions']:
             if v['orders']:
                 cat = 'Same judge'
@@ -271,9 +288,9 @@ def enforcement_analysis(rows):
             else:
                 cat = 'No order'
 
-            if op.get('rg_consequences_attorneys') == 'checked' or op.get('rg_consequences_parties') == 'checked':
+            if is_sanction(op):
                 categories[cat]['sanctions'] += 1
-            elif op.get('just_a_warning') == 'checked':
+            elif is_warning(op):
                 categories[cat]['warning'] += 1
             else:
                 categories[cat]['other'] += 1
@@ -297,24 +314,22 @@ def enforcement_analysis(rows):
         height=500,
     )
     fig.write_html(os.path.join(CHARTS_DIR, 'enforcement_by_order.html'))
-
     return categories
 
 
 def sanctions_timeline(rows):
-    """Stacked area: sanctions vs warnings over time."""
     sanctions_by_month = Counter()
     warnings_by_month = Counter()
 
     for r in rows:
-        if r['document_type'] != 'Judicial Opinion':
+        if not is_opinion(r):
             continue
-        ym = r['date_yyyy_mm']
+        ym = r.get('date', '')
         if not ym:
             continue
-        if r.get('rg_consequences_attorneys') == 'checked' or r.get('rg_consequences_parties') == 'checked':
+        if is_sanction(r):
             sanctions_by_month[ym] += 1
-        elif r.get('just_a_warning') == 'checked':
+        elif is_warning(r):
             warnings_by_month[ym] += 1
 
     all_months = sorted(set(list(sanctions_by_month.keys()) + list(warnings_by_month.keys())))
@@ -347,30 +362,27 @@ def sanctions_timeline(rows):
 
 
 def applies_to_breakdown(rows):
-    """Who do the orders apply to?"""
-    orders = [r for r in rows if r['document_type'] in ('Standing Order', 'Local Rules', 'Administrative Order')]
-    opinions = [r for r in rows if r['document_type'] == 'Judicial Opinion']
+    orders = [r for r in rows if is_order(r)]
+    opinions = [r for r in rows if is_opinion(r)]
 
-    # For orders
     order_targets = Counter()
     for r in orders:
-        val = r['applies_to']
-        if 'Attorneys' in val:
+        val = r.get('applies_to', '')
+        if 'Attorney' in val:
             order_targets['Attorneys'] += 1
         if 'Pro Se' in val:
             order_targets['Pro Se Litigants'] += 1
-        if 'Any Parties' in val:
+        if 'Any' in val or 'All' in val:
             order_targets['Any Parties'] += 1
 
-    # For opinions - who got sanctioned/warned
     opinion_targets = Counter()
     for r in opinions:
-        val = r['applies_to']
-        if 'Attorneys' in val:
+        val = r.get('applies_to', '')
+        if 'Attorney' in val:
             opinion_targets['Attorneys'] += 1
         if 'Pro Se' in val:
             opinion_targets['Pro Se Litigants'] += 1
-        if 'Any Parties' in val:
+        if 'Any' in val or 'All' in val:
             opinion_targets['Any Parties'] += 1
 
     targets = ['Attorneys', 'Pro Se Litigants', 'Any Parties']
@@ -398,20 +410,17 @@ def applies_to_breakdown(rows):
 
 
 def rg_tags_breakdown(rows):
-    """Horizontal bar: R&G applicableTo tag distribution across all entries."""
     tag_counts = Counter()
     for r in rows:
-        tags = r.get('rg_applicable_to', '')
-        if tags:
-            for tag in tags.split('|'):
-                tag = tag.strip()
+        tags = r.get('applicableTo', [])
+        if isinstance(tags, list):
+            for tag in tags:
                 if tag:
                     tag_counts[tag] += 1
 
     if not tag_counts:
         return
 
-    # Sort by count
     sorted_tags = sorted(tag_counts.items(), key=lambda x: x[1])
     labels = [t for t, _ in sorted_tags]
     values = [c for _, c in sorted_tags]
@@ -425,7 +434,7 @@ def rg_tags_breakdown(rows):
         textposition='auto',
     ))
     fig.update_layout(
-        title=f'R&G Tag Distribution (n={len(rows)})',
+        title=f'Tag Distribution (n={len(rows)})',
         xaxis_title='Count',
         template='plotly_white',
         height=450,
@@ -435,10 +444,9 @@ def rg_tags_breakdown(rows):
 
 
 def link_quality(rows):
-    """Pie chart: link quality — free vs paywalled vs generic."""
     categories = Counter()
     for r in rows:
-        link = r.get('link_to_source', '').lower()
+        link = (r.get('link') or '').lower()
         if not link:
             categories['No link'] += 1
         elif 'lexis.com' in link:
@@ -484,20 +492,19 @@ def link_quality(rows):
 
 
 def pro_se_vs_attorney(rows):
-    """Stacked bar over time: sanctions/warnings by pro se vs attorney."""
-    opinions = [r for r in rows if r['document_type'] == 'Judicial Opinion']
+    opinions = [r for r in rows if is_opinion(r)]
 
     pro_se_by_month = Counter()
     attorney_by_month = Counter()
 
     for r in opinions:
-        ym = r['date_yyyy_mm']
+        ym = r.get('date', '')
         if not ym:
             continue
         applies = r.get('applies_to', '')
         if 'Pro Se' in applies:
             pro_se_by_month[ym] += 1
-        elif 'Attorneys' in applies:
+        elif 'Attorney' in applies:
             attorney_by_month[ym] += 1
 
     all_months = sorted(set(list(pro_se_by_month.keys()) + list(attorney_by_month.keys())))
@@ -528,27 +535,22 @@ def pro_se_vs_attorney(rows):
 
 
 def consequence_severity(rows):
-    """Grouped bar: consequence type (warning/sanctions) by who gets hit."""
-    opinions = [r for r in rows if r['document_type'] == 'Judicial Opinion']
+    opinions = [r for r in rows if is_opinion(r)]
 
     data_points = {'Pro Se': {'warning': 0, 'sanctions': 0},
                    'Attorney': {'warning': 0, 'sanctions': 0}}
 
     for r in opinions:
         applies = r.get('applies_to', '')
-        is_sanction = (r.get('rg_consequences_attorneys') == 'checked' or
-                       r.get('rg_consequences_parties') == 'checked')
-        is_warning = r.get('just_a_warning') == 'checked'
-
         if 'Pro Se' in applies:
-            if is_sanction:
+            if is_sanction(r):
                 data_points['Pro Se']['sanctions'] += 1
-            elif is_warning:
+            elif is_warning(r):
                 data_points['Pro Se']['warning'] += 1
-        elif 'Attorneys' in applies:
-            if is_sanction:
+        elif 'Attorney' in applies:
+            if is_sanction(r):
                 data_points['Attorney']['sanctions'] += 1
-            elif is_warning:
+            elif is_warning(r):
                 data_points['Attorney']['warning'] += 1
 
     cats = ['Pro Se', 'Attorney']
@@ -575,36 +577,153 @@ def consequence_severity(rows):
     fig.write_html(os.path.join(CHARTS_DIR, 'consequence_severity.html'))
 
 
+def sanction_type_distribution(rows):
+    """Horizontal bar: breakdown of sanction types across all classified entries."""
+    type_counts = Counter()
+    for r in rows:
+        st = r.get('sanction_types')
+        if st and st.get('types'):
+            for t in st['types']:
+                type_counts[t] += 1
+
+    if not type_counts:
+        return
+
+    sorted_types = sorted(type_counts.items(), key=lambda x: x[1])
+    labels = [SANCTION_TYPE_LABELS.get(t, t) for t, _ in sorted_types]
+    values = [c for _, c in sorted_types]
+
+    type_colors = {
+        'Monetary': COLORS['red'],
+        'Dismissal': COLORS['orange'],
+        'Striking': COLORS['amber'],
+        'Bar Referral': COLORS['purple'],
+        'CLE Required': COLORS['teal'],
+        'Show Cause': COLORS['blue'],
+        'Admonishment': COLORS['gray'],
+        'Contempt': '#991b1b',
+    }
+    bar_colors = [type_colors.get(l, COLORS['gray']) for l in labels]
+
+    fig = go.Figure(go.Bar(
+        y=labels,
+        x=values,
+        orientation='h',
+        marker_color=bar_colors,
+        text=[f'{v}' for v in values],
+        textposition='auto',
+    ))
+
+    total = sum(1 for r in rows if r.get('sanction_types'))
+    fig.update_layout(
+        title=f'Sanction Type Distribution (n={total} classified entries)',
+        xaxis_title='Count',
+        template='plotly_white',
+        height=400,
+        margin=dict(l=150),
+    )
+    fig.write_html(os.path.join(CHARTS_DIR, 'sanction_types.html'))
+
+
+def sanction_amounts(rows):
+    """Bar chart: monetary sanction amounts (sought vs awarded)."""
+    sought = []
+    awarded = []
+    labels = []
+
+    for r in rows:
+        st = r.get('sanction_types')
+        if not st or 'monetary' not in (st.get('types') or []):
+            continue
+        s = st.get('amount_sought')
+        a = st.get('amount_awarded')
+        if not s and not a:
+            continue
+
+        def parse_amount(val):
+            if not val:
+                return 0
+            val = val.replace('$', '').replace(',', '').strip()
+            try:
+                return float(val)
+            except ValueError:
+                return 0
+
+        s_val = parse_amount(s)
+        a_val = parse_amount(a)
+        if s_val > 0 or a_val > 0:
+            label = r.get('judge', r.get('name', ''))[:30]
+            labels.append(label)
+            sought.append(s_val)
+            awarded.append(a_val)
+
+    if not labels:
+        return
+
+    indices = sorted(range(len(awarded)), key=lambda i: awarded[i] or sought[i], reverse=True)[:20]
+    labels = [labels[i] for i in indices]
+    sought = [sought[i] for i in indices]
+    awarded = [awarded[i] for i in indices]
+    labels.reverse()
+    sought.reverse()
+    awarded.reverse()
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        y=labels, x=sought,
+        name='Amount Sought',
+        orientation='h',
+        marker_color=COLORS['lightred'],
+    ))
+    fig.add_trace(go.Bar(
+        y=labels, x=awarded,
+        name='Amount Awarded',
+        orientation='h',
+        marker_color=COLORS['red'],
+    ))
+    fig.update_layout(
+        title='Monetary Sanctions: Sought vs. Awarded (Top 20)',
+        xaxis_title='Amount ($)',
+        barmode='group',
+        template='plotly_white',
+        height=600,
+        margin=dict(l=250),
+    )
+    fig.write_html(os.path.join(CHARTS_DIR, 'sanction_amounts.html'))
+
+
 def write_summary_stats(rows):
-    """Write summary statistics JSON."""
     total = len(rows)
-    dt = Counter(r['document_type'] for r in rows)
-    orders = [r for r in rows if r['document_type'] in ('Standing Order', 'Local Rules', 'Administrative Order', 'Practice Direction')]
-    opinions = [r for r in rows if r['document_type'] == 'Judicial Opinion']
+    dt = Counter(r['type'] for r in rows if r.get('type'))
+    orders = [r for r in rows if is_order(r)]
+    opinions = [r for r in rows if is_opinion(r)]
 
-    sanctions = [r for r in opinions
-                 if r.get('rg_consequences_attorneys') == 'checked' or r.get('rg_consequences_parties') == 'checked']
-    warnings = [r for r in opinions if r.get('just_a_warning') == 'checked']
+    sanctions = [r for r in opinions if is_sanction(r)]
+    warnings = [r for r in opinions if is_warning(r)]
 
-    # Link quality
-    link_free = sum(1 for r in rows if r.get('link_to_source') and
-                    'lexis.com' not in r['link_to_source'].lower() and
-                    'westlaw' not in r['link_to_source'].lower() and
-                    'bloomberglaw' not in r['link_to_source'].lower())
-    link_paywalled = sum(1 for r in rows if r.get('link_to_source') and
-                         ('lexis.com' in r['link_to_source'].lower() or
-                          'westlaw' in r['link_to_source'].lower() or
-                          'bloomberglaw' in r['link_to_source'].lower()))
+    link_free = sum(1 for r in rows if r.get('link') and
+                    'lexis.com' not in r['link'].lower() and
+                    'westlaw' not in r['link'].lower() and
+                    'bloomberglaw' not in r['link'].lower())
+    link_paywalled = sum(1 for r in rows if r.get('link') and
+                         ('lexis.com' in r['link'].lower() or
+                          'westlaw' in r['link'].lower() or
+                          'bloomberglaw' in r['link'].lower()))
 
-    # R&G tags
     tag_counts = Counter()
     for r in rows:
-        tags = r.get('rg_applicable_to', '')
-        if tags:
-            for tag in tags.split('|'):
-                tag = tag.strip()
+        tags = r.get('applicableTo', [])
+        if isinstance(tags, list):
+            for tag in tags:
                 if tag:
                     tag_counts[tag] += 1
+
+    sanction_type_counts = Counter()
+    for r in rows:
+        st = r.get('sanction_types')
+        if st and st.get('types'):
+            for t in st['types']:
+                sanction_type_counts[t] += 1
 
     stats = {
         'total_entries': total,
@@ -614,33 +733,22 @@ def write_summary_stats(rows):
         'total_sanctions': len(sanctions),
         'total_warnings': len(warnings),
         'date_range': {
-            'earliest': min((r['date_yyyy_mm'] for r in rows if r['date_yyyy_mm']), default=''),
-            'latest': max((r['date_yyyy_mm'] for r in rows if r['date_yyyy_mm']), default=''),
+            'earliest': min((r['date'] for r in rows if r.get('date')), default=''),
+            'latest': max((r['date'] for r in rows if r.get('date')), default=''),
         },
-        'states_represented': len(set(r['state'] for r in rows if r['state'] and r['state'] != '-')),
-        'unique_judges': len(set(r['judge_last_name'].lower() for r in rows if r['judge_last_name'])),
-        'source_breakdown': dict(Counter(r['source'] for r in rows)),
-        'ai_type': dict(Counter(r['ai_type'] for r in rows if r['ai_type'])),
+        'states_represented': len(set(r['state'] for r in rows if r.get('state') and r['state'] != '-')),
+        'unique_judges': len(set(r['judge'].lower() for r in rows if r.get('judge'))),
+        'source_breakdown': dict(Counter(r['source'] for r in rows if r.get('source'))),
+        'ai_type': dict(Counter(r['ai_type'] for r in rows if r.get('ai_type'))),
         'link_quality': {
             'free': link_free,
             'paywalled': link_paywalled,
             'free_pct': round(100 * link_free / total, 1) if total else 0,
         },
-        'rg_tags': dict(tag_counts.most_common()),
-        'top_requirements_in_orders': {},
+        'tags': dict(tag_counts.most_common()),
+        'sanction_types': dict(sanction_type_counts.most_common()),
+        'entries_with_sanction_types': sum(1 for r in rows if r.get('sanction_types')),
     }
-
-    req_cols = [
-        ('disclose_ai_use_w_each_filing', 'Yes'),
-        ('certify_accuracy_w_each_filing_if_ai_used', 'checked'),
-        ('certify_accuracy_non_use_w_each_filing', 'Yes'),
-        ('just_a_warning', 'checked'),
-        ('maintain_ai_prompt_records', 'checked'),
-        ('prohibited', 'checked'),
-    ]
-    for col, match_val in req_cols:
-        count = sum(1 for r in orders if r.get(col, '') == match_val)
-        stats['top_requirements_in_orders'][col] = {'count': count, 'pct': round(100 * count / len(orders), 1) if orders else 0}
 
     with open(os.path.join(ANALYSIS_DIR, 'summary_stats.json'), 'w') as f:
         json.dump(stats, f, indent=2)
@@ -650,9 +758,8 @@ def write_summary_stats(rows):
 
 def main():
     rows = load_data()
-    print(f"Loaded {len(rows)} rows")
+    print(f"Loaded {len(rows)} entries from JSON")
 
-    # Generate all charts
     print("Generating charts...")
     orders_vs_opinions_by_month(rows)
     print("  orders_vs_opinions_monthly.html")
@@ -690,10 +797,15 @@ def main():
     consequence_severity(rows)
     print("  consequence_severity.html")
 
+    sanction_type_distribution(rows)
+    print("  sanction_types.html")
+
+    sanction_amounts(rows)
+    print("  sanction_amounts.html")
+
     stats = write_summary_stats(rows)
     print("  summary_stats.json")
 
-    # Print summary
     print(f"\n{'='*60}")
     print(f"DATASET SUMMARY")
     print(f"{'='*60}")
@@ -712,12 +824,14 @@ def main():
     print(f"  Warnings only: {stats['total_warnings']}")
     print(f"  Other/unclear: {stats['total_opinions'] - stats['total_sanctions'] - stats['total_warnings']}")
     print()
+    print(f"Sanction types ({stats['entries_with_sanction_types']} classified):")
+    for t, c in stats['sanction_types'].items():
+        print(f"  {c:3d} {SANCTION_TYPE_LABELS.get(t, t)}")
+    print()
     print(f"AI type: {stats['ai_type']}")
     print()
     print(f"Link quality: {stats['link_quality']['free']} free ({stats['link_quality']['free_pct']}%), "
           f"{stats['link_quality']['paywalled']} paywalled")
-    print()
-    print(f"R&G tags: {dict(list(stats['rg_tags'].items())[:5])}")
     print()
     print(f"Enforcement vs standing orders:")
     for cat, counts in categories.items():

@@ -1,0 +1,332 @@
+{
+  "404": {
+    "types": ["admonishment"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "410": {
+    "types": ["monetary", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$2,000"
+  },
+  "413": {
+    "types": ["monetary", "cle", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "416": {
+    "types": ["striking"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "418": {
+    "types": ["monetary", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$7,500"
+  },
+  "420": {
+    "types": ["bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "421": {
+    "types": ["monetary", "cle"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "422": {
+    "types": ["admonishment"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "427": {
+    "types": ["monetary", "cle", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$1,368"
+  },
+  "428": {
+    "types": ["dismissal"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "429": {
+    "types": ["monetary", "striking"],
+    "amount_sought": null,
+    "amount_awarded": "$2,000"
+  },
+  "430": {
+    "types": ["monetary", "striking"],
+    "amount_sought": null,
+    "amount_awarded": "$11,747.95"
+  },
+  "432": {
+    "types": ["contempt"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "433": {
+    "types": ["dismissal"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "435": {
+    "types": ["admonishment"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "441": {
+    "types": ["monetary"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "442": {
+    "types": ["dismissal"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "444": {
+    "types": ["monetary", "cle", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$1,000"
+  },
+  "446": {
+    "types": ["monetary", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$5,000"
+  },
+  "448": {
+    "types": ["monetary", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "449": {
+    "types": ["monetary", "cle", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$1,000"
+  },
+  "450": {
+    "types": ["striking", "monetary", "cle", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$150"
+  },
+  "451": {
+    "types": ["monetary", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "457": {
+    "types": ["monetary", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$3,000"
+  },
+  "458": {
+    "types": ["admonishment"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "459": {
+    "types": ["admonishment"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "460": {
+    "types": ["monetary"],
+    "amount_sought": null,
+    "amount_awarded": "$600"
+  },
+  "462": {
+    "types": ["dismissal"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "463": {
+    "types": ["monetary", "striking", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$3,000"
+  },
+  "464": {
+    "types": ["monetary"],
+    "amount_sought": null,
+    "amount_awarded": "$4,500"
+  },
+  "470": {
+    "types": ["monetary", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "471": {
+    "types": ["monetary", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$10,000"
+  },
+  "476": {
+    "types": ["striking", "dismissal"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "477": {
+    "types": ["dismissal"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "478": {
+    "types": ["monetary", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$1,500"
+  },
+  "481": {
+    "types": ["bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "483": {
+    "types": ["monetary"],
+    "amount_sought": null,
+    "amount_awarded": "$1,000"
+  },
+  "484": {
+    "types": ["monetary"],
+    "amount_sought": null,
+    "amount_awarded": "$1,000"
+  },
+  "485": {
+    "types": ["cle"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "488": {
+    "types": ["admonishment"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "489": {
+    "types": ["bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "493": {
+    "types": ["admonishment"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "494": {
+    "types": ["monetary"],
+    "amount_sought": null,
+    "amount_awarded": "$500"
+  },
+  "500": {
+    "types": ["monetary", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$1,000"
+  },
+  "504": {
+    "types": ["admonishment"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "505": {
+    "types": ["monetary"],
+    "amount_sought": "$400,000",
+    "amount_awarded": null
+  },
+  "507": {
+    "types": ["monetary", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": "$1,000"
+  },
+  "508": {
+    "types": ["admonishment"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "509": {
+    "types": ["dismissal"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "511": {
+    "types": ["dismissal"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "513": {
+    "types": ["admonishment", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "514": {
+    "types": ["monetary", "cle"],
+    "amount_sought": null,
+    "amount_awarded": "$2,500"
+  },
+  "516": {
+    "types": ["dismissal"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "518": {
+    "types": ["monetary", "cle"],
+    "amount_sought": null,
+    "amount_awarded": "$5,500"
+  },
+  "522": {
+    "types": ["dismissal", "monetary", "bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "524": {
+    "types": ["monetary", "cle"],
+    "amount_sought": null,
+    "amount_awarded": "$1,000"
+  },
+  "526": {
+    "types": ["monetary"],
+    "amount_sought": "$1,096",
+    "amount_awarded": "$921"
+  },
+  "527": {
+    "types": ["monetary"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "529": {
+    "types": ["monetary"],
+    "amount_sought": null,
+    "amount_awarded": "$6,000"
+  },
+  "530": {
+    "types": ["admonishment"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "536": {
+    "types": ["bar_referral"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "540": {
+    "types": ["striking"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "541": {
+    "types": ["monetary", "cle"],
+    "amount_sought": null,
+    "amount_awarded": "$2,500"
+  },
+  "547": {
+    "types": ["show_cause"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "548": {
+    "types": ["striking"],
+    "amount_sought": null,
+    "amount_awarded": null
+  },
+  "549": {
+    "types": ["dismissal"],
+    "amount_sought": null,
+    "amount_awarded": null
+  }
+}

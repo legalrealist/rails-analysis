@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Court Orders Explorer</title>
+<script src="minisearch.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; }
@@ -11,6 +12,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .header { background: #1e293b; color: white; padding: 20px 24px; }
 .header h1 { font-size: 22px; font-weight: 600; }
 .header .subtitle { color: #94a3b8; font-size: 14px; margin-top: 4px; }
+
+.tab-bar { display: flex; background: #1e293b; padding: 0 24px; gap: 0; border-top: 1px solid #334155; }
+.tab-btn { padding: 10px 20px; color: #94a3b8; background: transparent; border: none; cursor: pointer; font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.tab-btn:hover { color: #e2e8f0; }
+.tab-btn.active { color: white; border-bottom-color: #3b82f6; }
 
 .controls { background: white; border-bottom: 1px solid #e2e8f0; padding: 16px 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; position: sticky; top: 0; z-index: 10; }
 .search-box { flex: 1; min-width: 250px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
@@ -26,7 +32,7 @@ select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-
 .chip.active-orange { background: #ea580c; color: white; border-color: #ea580c; }
 .chip.active-green { background: #16a34a; color: white; border-color: #16a34a; }
 
-.layout { display: flex; height: calc(100vh - 180px); }
+.layout { display: flex; height: calc(100vh - 220px); }
 .list-pane { width: 55%; overflow-y: auto; border-right: 1px solid #e2e8f0; }
 .detail-pane { width: 45%; overflow-y: auto; padding: 24px; background: white; }
 
@@ -50,6 +56,16 @@ select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-
 .badge-warning { background: #fff7ed; color: #ea580c; }
 .badge-order { background: #dbeafe; color: #2563eb; }
 
+.sanction-type-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; margin-left: 2px; }
+.st-monetary { background: #d1fae5; color: #065f46; }
+.st-dismissal { background: #fee2e2; color: #991b1b; }
+.st-striking { background: #ffedd5; color: #9a3412; }
+.st-bar_referral { background: #ede9fe; color: #5b21b6; }
+.st-cle { background: #dbeafe; color: #1e40af; }
+.st-show_cause { background: #fef9c3; color: #854d0e; }
+.st-admonishment { background: #fce7f3; color: #9d174d; }
+.st-contempt { background: #fecaca; color: #7f1d1d; }
+
 .detail-empty { color: #94a3b8; text-align: center; margin-top: 100px; }
 .detail-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; line-height: 1.4; }
 .detail-meta { display: grid; grid-template-columns: 120px 1fr; gap: 8px; font-size: 13px; margin-bottom: 20px; }
@@ -70,9 +86,54 @@ select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-
 .tag-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .tag-pill { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
 .tag-pill.sector { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
-.link-free { color: #16a34a; }
-.link-paywalled { color: #dc2626; }
-.link-none { color: #94a3b8; }
+.tag-pill.rule-pill { background: #faf5ff; color: #7c3aed; border-color: #ddd6fe; }
+
+.collapsible-header { padding: 12px 24px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; cursor: pointer; font-size: 13px; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 8px; }
+.collapsible-header:hover { background: #e2e8f0; }
+.collapsible-header .arrow { transition: transform 0.15s; }
+.collapsible-header.open .arrow { transform: rotate(90deg); }
+
+/* Bar opinions tab styles */
+.judges-view { display: none; }
+.judges-view.active { display: flex; }
+.bar-opinions-view { display: none; }
+.bar-opinions-view.active { display: block; }
+
+.map-container { padding: 24px; background: white; border-bottom: 1px solid #e2e8f0; }
+.map-container svg { width: 100%; max-width: 800px; margin: 0 auto; display: block; }
+.map-container svg path { stroke: #fff; stroke-width: 0.5; cursor: pointer; transition: opacity 0.15s; }
+.map-container svg path:hover { opacity: 0.8; }
+
+.map-legend { display: flex; gap: 16px; justify-content: center; margin-top: 16px; font-size: 12px; color: #64748b; }
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #e2e8f0; }
+
+.map-tooltip { position: fixed; padding: 6px 10px; background: #1e293b; color: white; border-radius: 4px; font-size: 12px; pointer-events: none; z-index: 100; display: none; }
+
+.bar-list { padding: 0; }
+.bar-item { padding: 16px 24px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.1s; }
+.bar-item:hover { background: #f8fafc; }
+.bar-item.expanded { background: #eff6ff; }
+.bar-item-header { display: flex; align-items: center; gap: 12px; }
+.bar-item-state { font-size: 16px; font-weight: 600; min-width: 180px; }
+.bar-item-title { font-size: 13px; color: #475569; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-item-date { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+
+.status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.status-formal { background: #1e40af; color: white; }
+.status-informal { background: #60a5fa; color: white; }
+.status-pending { background: #bfdbfe; color: #1e40af; }
+.status-none { background: #e2e8f0; color: #64748b; }
+
+.bar-item-detail { display: none; padding: 16px 0 0 0; font-size: 13px; line-height: 1.6; color: #334155; }
+.bar-item.expanded .bar-item-detail { display: block; }
+.bar-detail-section { margin-top: 12px; }
+.bar-detail-section h4 { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+
+.attribution { padding: 16px 24px; font-size: 12px; color: #94a3b8; background: #f8fafc; border-top: 1px solid #e2e8f0; }
+.attribution a { color: #3b82f6; }
+
+.amount-tag { font-size: 12px; color: #065f46; font-weight: 500; }
 
 @media (max-width: 900px) {
   .layout { flex-direction: column; height: auto; }
@@ -85,75 +146,134 @@ select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-
 
 <div class="header">
   <h1>AI Court Orders Explorer</h1>
-  <div class="subtitle">663 court orders and opinions on AI use in legal proceedings (May 2023 &ndash; May 2026)</div>
+  <div class="subtitle" id="headerSubtitle">Loading...</div>
 </div>
 
-<div class="controls">
-  <input class="search-box" type="text" id="search" placeholder="Search by judge, court, state, keyword...">
-  <select id="typeFilter">
-    <option value="">All Types</option>
-    <option value="Standing Order">Standing Orders</option>
-    <option value="Local Rules">Local Rules</option>
-    <option value="Administrative Order">Administrative Orders</option>
-    <option value="Judicial Opinion">Judicial Opinions</option>
-    <option value="Practice Direction">Practice Directions</option>
-  </select>
-  <select id="stateFilter">
-    <option value="">All States</option>
-  </select>
-  <select id="consequenceFilter">
-    <option value="">All Outcomes</option>
-    <option value="sanctions_attorney">Sanctions (Attorney)</option>
-    <option value="sanctions_party">Sanctions (Party)</option>
-    <option value="warning">Warning Only</option>
-    <option value="none">No Consequence</option>
-  </select>
-  <select id="tagFilter">
-    <option value="">All Sectors</option>
-  </select>
-  <span class="count" id="count"></span>
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="judges" id="judgesTabBtn">Judges</button>
+  <button class="tab-btn" data-tab="bar-opinions" id="barTabBtn">Bar Opinions</button>
 </div>
 
-<div class="chips" id="chips">
-  <span class="chip" data-filter="has_link">Has Link</span>
-  <span class="chip" data-filter="has_summary">Has Summary</span>
-  <span class="chip" data-filter="req_disclose">Requires Disclosure</span>
-  <span class="chip" data-filter="req_certify">Requires Certification</span>
-  <span class="chip" data-filter="req_prompts">Prompt Retention</span>
-  <span class="chip" data-filter="prohibited">Prohibits AI</span>
-  <span class="chip" data-filter="pro_se">Pro Se</span>
-  <span class="chip" data-filter="attorney">Attorney</span>
-</div>
+<!-- JUDGES TAB -->
+<div id="judgesView" class="judges-view active">
+  <div class="controls">
+    <input class="search-box" type="text" id="search" placeholder="Search by judge, court, state, keyword...">
+    <select id="typeFilter">
+      <option value="">All Types</option>
+      <option value="Standing Order">Standing Orders</option>
+      <option value="Local Rules">Local Rules</option>
+      <option value="Administrative Order">Administrative Orders</option>
+      <option value="Judicial Opinion">Judicial Opinions</option>
+      <option value="Practice Direction">Practice Directions</option>
+    </select>
+    <select id="stateFilter"><option value="">All States</option></select>
+    <select id="consequenceFilter">
+      <option value="">All Outcomes</option>
+      <option value="sanctions_attorney">Sanctions (Attorney)</option>
+      <option value="sanctions_party">Sanctions (Party)</option>
+      <option value="warning">Warning Only</option>
+      <option value="none">No Consequence</option>
+    </select>
+    <select id="sanctionTypeFilter"><option value="">All Sanction Types</option></select>
+    <select id="tagFilter"><option value="">All Sectors</option></select>
+    <span class="count" id="count"></span>
+  </div>
 
-<div class="layout">
-  <div class="list-pane" id="list"></div>
-  <div class="detail-pane" id="detail">
-    <div class="detail-empty">Select an order to view details</div>
+  <div class="chips" id="chips">
+    <span class="chip" data-filter="has_link">Has Link</span>
+    <span class="chip" data-filter="has_summary">Has Summary</span>
+    <span class="chip" data-filter="req_disclose">Requires Disclosure</span>
+    <span class="chip" data-filter="req_certify">Requires Certification</span>
+    <span class="chip" data-filter="req_prompts">Prompt Retention</span>
+    <span class="chip" data-filter="prohibited">Prohibits AI</span>
+    <span class="chip" data-filter="pro_se">Pro Se</span>
+    <span class="chip" data-filter="attorney">Attorney</span>
+  </div>
+
+  <div class="layout">
+    <div class="list-pane" id="list"></div>
+    <div class="detail-pane" id="detail">
+      <div class="detail-empty">Select an order to view details</div>
+    </div>
   </div>
 </div>
 
+<!-- BAR OPINIONS TAB -->
+<div id="barOpinionsView" class="bar-opinions-view">
+  <div class="map-container">
+    <svg id="barMap" viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="map-legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:#1e40af;"></div> Formal</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#60a5fa;"></div> Informal</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#bfdbfe;"></div> Pending</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e2e8f0;"></div> None</div>
+    </div>
+  </div>
+  <div class="controls">
+    <input class="search-box" type="text" id="barSearch" placeholder="Search state, opinion, rules...">
+    <select id="barStatusFilter">
+      <option value="">All Statuses</option>
+      <option value="formal">Formal</option>
+      <option value="informal">Informal</option>
+      <option value="pending">Pending</option>
+      <option value="none">None</option>
+    </select>
+    <span class="count" id="barCount"></span>
+  </div>
+  <div class="bar-list" id="barList"></div>
+  <div class="attribution">
+    Data source: <a href="https://legalaigovernance.com" target="_blank" rel="noopener">Legal AI Governance</a> (legalaigovernance.com). Primary sources linked per entry.
+  </div>
+</div>
+
+<div class="map-tooltip" id="tooltip"></div>
+
 <script>
-let DATA = [];
-let filtered = [];
+// ============================================================
+// STATE DATA
+// ============================================================
+let JUDGES_DATA = [];
+let BAR_DATA = [];
+let STATE_PATHS = {};
+let judgesFiltered = [];
+let barFiltered = [];
 let selectedId = null;
 let activeChips = new Set();
+let judgesMiniSearch = null;
+let barMiniSearch = null;
 
-const REQ_LABELS = {
-  disclose: 'Disclose AI Use',
-  tool: 'Disclose Tool Used',
-  how: 'Disclose How Used',
-  sections: 'ID Sections Drafted',
-  verify: 'Verify Accuracy Process',
-  certify_all: 'Certify Accuracy/Non-Use (All Filings)',
-  certify_if_ai: 'Certify Accuracy (If AI Used)',
-  prompts: 'Retain AI Prompts',
-  proprietary: 'Protect Proprietary Info',
-  prohibited: 'Prohibits AI Use',
-  warning: 'Just a Warning',
-  rules: 'References Procedural Rules',
-  evidence: 'Disclose AI Evidence',
+const STATUS_COLORS = { formal: '#1e40af', informal: '#60a5fa', pending: '#bfdbfe', none: '#e2e8f0' };
+
+const SANCTION_TYPE_LABELS = {
+  monetary: '$ Monetary', dismissal: 'Dismissal', striking: 'Striking',
+  bar_referral: 'Bar Referral', cle: 'CLE Required', show_cause: 'Show Cause',
+  admonishment: 'Admonishment', contempt: 'Contempt'
 };
 
+const REQ_LABELS = {
+  disclose: 'Disclose AI Use', tool: 'Disclose Tool Used', how: 'Disclose How Used',
+  sections: 'ID Sections Drafted', verify: 'Verify Accuracy Process',
+  certify_all: 'Certify Accuracy/Non-Use (All Filings)', certify_if_ai: 'Certify Accuracy (If AI Used)',
+  prompts: 'Retain AI Prompts', proprietary: 'Protect Proprietary Info', prohibited: 'Prohibits AI Use',
+  warning: 'Just a Warning', rules: 'References Procedural Rules', evidence: 'Disclose AI Evidence',
+};
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('judgesView').classList.toggle('active', tab === 'judges');
+    document.getElementById('barOpinionsView').classList.toggle('active', tab === 'bar-opinions');
+  });
+});
+
+// ============================================================
+// JUDGES TAB
+// ============================================================
 function iconClass(type) {
   if (type === 'Standing Order') return 'icon-order';
   if (type === 'Judicial Opinion') return 'icon-opinion';
@@ -176,12 +296,11 @@ function consequenceBadge(c) {
   return '';
 }
 
-function matchesSearch(d, q) {
-  if (!q) return true;
-  const terms = q.toLowerCase().split(/\s+/);
-  const tags = Array.isArray(d.applicableTo) ? d.applicableTo.join(' ') : '';
-  const haystack = [d.judge, d.court, d.state, d.name, d.summary, d.type, d.ai_type, d.applies_to, tags].join(' ').toLowerCase();
-  return terms.every(t => haystack.includes(t));
+function sanctionTypeBadges(d) {
+  if (!d.sanction_types || !d.sanction_types.types) return '';
+  return d.sanction_types.types.map(t =>
+    `<span class="sanction-type-badge st-${t}">${SANCTION_TYPE_LABELS[t] || t}</span>`
+  ).join('');
 }
 
 function matchesChips(d) {
@@ -198,59 +317,101 @@ function matchesChips(d) {
   return true;
 }
 
-function applyFilters() {
-  const q = document.getElementById('search').value;
+function applyJudgesFilters() {
+  const q = document.getElementById('search').value.trim();
   const typeF = document.getElementById('typeFilter').value;
   const stateF = document.getElementById('stateFilter').value;
   const conseqF = document.getElementById('consequenceFilter').value;
   const tagF = document.getElementById('tagFilter').value;
+  const stF = document.getElementById('sanctionTypeFilter').value;
 
-  filtered = DATA.filter(d => {
-    if (!matchesSearch(d, q)) return false;
+  let searchIds = null;
+  if (q && judgesMiniSearch) {
+    searchIds = new Set(judgesMiniSearch.search(q).map(r => r.id));
+  }
+
+  judgesFiltered = JUDGES_DATA.filter(d => {
+    if (d.jurisdiction !== 'US') return false;
+    if (searchIds && !searchIds.has(d.id)) return false;
     if (typeF && d.type !== typeF) return false;
     if (stateF && d.state !== stateF) return false;
     if (conseqF === 'none' && d.consequence) return false;
     if (conseqF && conseqF !== 'none' && d.consequence !== conseqF) return false;
     if (tagF && !(Array.isArray(d.applicableTo) && d.applicableTo.includes(tagF))) return false;
+    if (stF && !(d.sanction_types && d.sanction_types.types && d.sanction_types.types.includes(stF))) return false;
     if (!matchesChips(d)) return false;
     return true;
   });
 
-  document.getElementById('count').textContent = `${filtered.length} of ${DATA.length}`;
-  renderList();
+  const intlFiltered = JUDGES_DATA.filter(d => {
+    if (d.jurisdiction === 'US') return false;
+    if (searchIds && !searchIds.has(d.id)) return false;
+    if (typeF && d.type !== typeF) return false;
+    if (!matchesChips(d)) return false;
+    return true;
+  });
+
+  const total = judgesFiltered.length + intlFiltered.length;
+  document.getElementById('count').textContent = `${total} of ${JUDGES_DATA.length}`;
+  renderJudgesList(judgesFiltered, intlFiltered);
 }
 
-function renderList() {
+function renderJudgesList(usData, intlData) {
   const list = document.getElementById('list');
-  // Virtual-ish render: show up to 200, add "load more" if needed
-  const show = filtered.slice(0, 500);
-  list.innerHTML = show.map(d => `
-    <div class="row ${d.id === selectedId ? 'selected' : ''}" data-id="${d.id}">
-      <div class="row-icon ${iconClass(d.type)}">${iconChar(d.type)}</div>
-      <div class="row-content">
-        <div class="row-title">${esc(d.judge || d.name || 'Unknown')}</div>
-        <div class="row-meta">
-          <span>${esc(d.court)}</span>
-          <span>${d.date || 'No date'}</span>
-          <span>${esc(d.type)}</span>
-          ${consequenceBadge(d.consequence)}
-        </div>
-        ${Array.isArray(d.applicableTo) && d.applicableTo.length ? `<div class="row-meta" style="margin-top:3px;">${d.applicableTo.slice(0,3).map(t => `<span style="font-size:10px;padding:1px 5px;background:#eff6ff;color:#1d4ed8;border-radius:8px;">${esc(t)}</span>`).join('')}${d.applicableTo.length > 3 ? `<span style="font-size:10px;color:#94a3b8;">+${d.applicableTo.length-3}</span>` : ''}</div>` : ''}
-      </div>
-    </div>
-  `).join('');
+  const show = usData.slice(0, 500);
+  let html = show.map(d => renderRow(d)).join('');
 
+  if (intlData.length > 0) {
+    html += `<div class="collapsible-header" id="intlHeader" onclick="toggleIntl()">
+      <span class="arrow">&#9654;</span> International (${intlData.length})
+    </div>
+    <div id="intlSection" style="display:none;">
+      ${intlData.map(d => renderRow(d)).join('')}
+    </div>`;
+  }
+
+  list.innerHTML = html;
   list.querySelectorAll('.row').forEach(el => {
     el.addEventListener('click', () => {
       selectedId = parseInt(el.dataset.id);
-      renderDetail(DATA[selectedId]);
+      renderJudgesDetail(JUDGES_DATA.find(d => d.id === selectedId));
       list.querySelectorAll('.row').forEach(r => r.classList.remove('selected'));
       el.classList.add('selected');
     });
   });
 }
 
-function renderDetail(d) {
+function toggleIntl() {
+  const sec = document.getElementById('intlSection');
+  const hdr = document.getElementById('intlHeader');
+  if (sec.style.display === 'none') {
+    sec.style.display = 'block';
+    hdr.classList.add('open');
+  } else {
+    sec.style.display = 'none';
+    hdr.classList.remove('open');
+  }
+}
+
+function renderRow(d) {
+  return `<div class="row ${d.id === selectedId ? 'selected' : ''}" data-id="${d.id}">
+    <div class="row-icon ${iconClass(d.type)}">${iconChar(d.type)}</div>
+    <div class="row-content">
+      <div class="row-title">${esc(d.judge || d.name || 'Unknown')}</div>
+      <div class="row-meta">
+        <span>${esc(d.court)}</span>
+        <span>${d.date || 'No date'}</span>
+        <span>${esc(d.type)}</span>
+        ${consequenceBadge(d.consequence)}
+        ${sanctionTypeBadges(d)}
+      </div>
+      ${Array.isArray(d.applicableTo) && d.applicableTo.length ? `<div class="row-meta" style="margin-top:3px;">${d.applicableTo.slice(0,3).map(t => `<span style="font-size:10px;padding:1px 5px;background:#eff6ff;color:#1d4ed8;border-radius:8px;">${esc(t)}</span>`).join('')}${d.applicableTo.length > 3 ? `<span style="font-size:10px;color:#94a3b8;">+${d.applicableTo.length-3}</span>` : ''}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderJudgesDetail(d) {
+  if (!d) return;
   const panel = document.getElementById('detail');
   const reqsHtml = Object.keys(REQ_LABELS).map(k => {
     const active = d.reqs[k] ? 'active' : '';
@@ -258,17 +419,30 @@ function renderDetail(d) {
     return `<span class="req-tag ${active}">${REQ_LABELS[k]}${active ? val : ''}</span>`;
   }).join('');
 
+  let sanctionDetailHtml = '';
+  if (d.sanction_types && d.sanction_types.types && d.sanction_types.types.length) {
+    sanctionDetailHtml = `<div class="detail-section">
+      <h3>Sanction Types</h3>
+      <div class="tag-pills">${d.sanction_types.types.map(t =>
+        `<span class="sanction-type-badge st-${t}" style="font-size:12px;padding:3px 10px;">${SANCTION_TYPE_LABELS[t] || t}</span>`
+      ).join('')}</div>
+      ${d.sanction_types.amount_sought ? `<div style="margin-top:8px;font-size:13px;"><strong>Amount Sought:</strong> <span class="amount-tag">${esc(d.sanction_types.amount_sought)}</span></div>` : ''}
+      ${d.sanction_types.amount_awarded ? `<div style="margin-top:4px;font-size:13px;"><strong>Amount Awarded:</strong> <span class="amount-tag">${esc(d.sanction_types.amount_awarded)}</span></div>` : ''}
+    </div>`;
+  }
+
   panel.innerHTML = `
     <div class="detail-title">${esc(d.judge || d.name || 'Unknown')}</div>
     <dl class="detail-meta">
       <dt>Court</dt><dd>${esc(d.court)}</dd>
-      <dt>State</dt><dd>${esc(d.state)}</dd>
+      <dt>State</dt><dd>${esc(d.state)}${d.jurisdiction !== 'US' ? ` (${esc(d.jurisdiction)})` : ''}</dd>
       <dt>Date</dt><dd>${d.date || 'Unknown'}</dd>
       <dt>Type</dt><dd>${esc(d.type)} ${consequenceBadge(d.consequence)}</dd>
       <dt>AI Type</dt><dd>${esc(d.ai_type)}</dd>
       <dt>Applies To</dt><dd>${esc(d.applies_to)}</dd>
       <dt>Source</dt><dd>${d.source === 'both' ? 'RAILS + Ropes & Gray' : d.source === 'rails' ? 'RAILS (Duke Law)' : 'Ropes & Gray'}</dd>
     </dl>
+    ${sanctionDetailHtml}
     ${Array.isArray(d.applicableTo) && d.applicableTo.length ? `
       <div class="detail-section">
         <h3>Applicable Sectors</h3>
@@ -284,6 +458,113 @@ function renderDetail(d) {
   `;
 }
 
+// ============================================================
+// BAR OPINIONS TAB
+// ============================================================
+function applyBarFilters() {
+  const q = document.getElementById('barSearch').value.trim();
+  const statusF = document.getElementById('barStatusFilter').value;
+
+  let searchIds = null;
+  if (q && barMiniSearch) {
+    searchIds = new Set(barMiniSearch.search(q).map(r => r.id));
+  }
+
+  barFiltered = BAR_DATA.filter(d => {
+    if (searchIds && !searchIds.has(d.slug)) return false;
+    if (statusF && d.status !== statusF) return false;
+    return true;
+  });
+
+  document.getElementById('barCount').textContent = `${barFiltered.length} of ${BAR_DATA.length}`;
+  renderBarList();
+  updateMapHighlights();
+}
+
+function renderBarList() {
+  const list = document.getElementById('barList');
+  const activeStates = new Set(barFiltered.map(d => d.slug));
+
+  list.innerHTML = barFiltered.map(d => `
+    <div class="bar-item" data-slug="${d.slug}" onclick="toggleBarItem(this)">
+      <div class="bar-item-header">
+        <div class="bar-item-state">${esc(d.name)}</div>
+        <span class="status-badge status-${d.status}">${d.status}</span>
+        <div class="bar-item-title">${d.opinion_title ? esc(d.opinion_title) : '<span style="color:#94a3b8;">No opinion issued</span>'}</div>
+        <div class="bar-item-date">${d.opinion_date || ''}</div>
+      </div>
+      <div class="bar-item-detail">
+        ${d.citation ? `<div style="font-size:12px;color:#64748b;margin-bottom:8px;">${esc(d.citation)}</div>` : ''}
+        ${d.summary ? `<div>${esc(d.summary)}</div>` : ''}
+        ${d.key_rules && d.key_rules.length ? `
+          <div class="bar-detail-section">
+            <h4>Key Rules</h4>
+            <div class="tag-pills">${d.key_rules.map(r => `<span class="tag-pill rule-pill">Rule ${esc(r)}</span>`).join('')}</div>
+          </div>` : ''}
+        ${d.key_authority ? `<div class="bar-detail-section"><h4>Key Authority</h4><div>${esc(d.key_authority)}</div></div>` : ''}
+        ${d.carrier_implications ? `<div class="bar-detail-section"><h4>Carrier Implications</h4><div>${esc(d.carrier_implications)}</div></div>` : ''}
+        <div class="bar-detail-section" style="margin-top:12px;">
+          ${d.primary_source_urls && d.primary_source_urls.length ? `<div style="margin-bottom:4px;">${d.primary_source_urls.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener" style="font-size:12px;color:#2563eb;display:block;margin:2px 0;word-break:break-all;">Primary: ${esc(u.replace(/^https?:\/\//, '').substring(0,60))}...</a>`).join('')}</div>` : ''}
+          <a href="${esc(d.url)}" target="_blank" rel="noopener" style="font-size:12px;color:#94a3b8;">via Legal AI Governance</a>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleBarItem(el) {
+  el.classList.toggle('expanded');
+}
+
+function updateMapHighlights() {
+  const activeAbbrs = new Set(barFiltered.map(d => d.abbreviation));
+  document.querySelectorAll('#barMap path').forEach(p => {
+    const abbr = p.dataset.state;
+    p.style.opacity = activeAbbrs.has(abbr) ? '1' : '0.3';
+  });
+}
+
+// ============================================================
+// MAP RENDERING
+// ============================================================
+function renderBarMap() {
+  const svg = document.getElementById('barMap');
+  const tooltip = document.getElementById('tooltip');
+  const statusByAbbr = {};
+  BAR_DATA.forEach(d => { statusByAbbr[d.abbreviation] = d; });
+
+  for (const [abbr, path] of Object.entries(STATE_PATHS)) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    el.setAttribute('d', path);
+    const item = statusByAbbr[abbr];
+    el.setAttribute('fill', item ? (STATUS_COLORS[item.status] || '#e2e8f0') : '#e2e8f0');
+    el.dataset.state = abbr;
+
+    el.addEventListener('mouseenter', e => {
+      const name = item ? item.name : abbr;
+      const status = item ? item.status : 'unknown';
+      tooltip.textContent = `${name}: ${status}`;
+      tooltip.style.display = 'block';
+    });
+    el.addEventListener('mousemove', e => {
+      tooltip.style.left = (e.clientX + 12) + 'px';
+      tooltip.style.top = (e.clientY - 20) + 'px';
+    });
+    el.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+    el.addEventListener('click', () => {
+      if (item) {
+        document.getElementById('barStatusFilter').value = item.status;
+        applyBarFilters();
+      }
+    });
+
+    svg.appendChild(el);
+  }
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
 function esc(s) {
   if (!s) return '';
   const el = document.createElement('span');
@@ -291,52 +572,103 @@ function esc(s) {
   return el.innerHTML;
 }
 
-// Init
-fetch('../data/processed/explorer_data.json')
-  .then(r => r.json())
-  .then(data => {
-    DATA = data;
-    // Populate state filter
-    const states = [...new Set(data.map(d => d.state).filter(s => s && s !== '-'))].sort();
-    const sel = document.getElementById('stateFilter');
-    states.forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s; opt.textContent = s;
-      sel.appendChild(opt);
-    });
-    // Populate sector/tag filter from applicableTo
-    const allTags = new Set();
-    data.forEach(d => { if (Array.isArray(d.applicableTo)) d.applicableTo.forEach(t => allTags.add(t)); });
-    const tagSel = document.getElementById('tagFilter');
-    [...allTags].sort().forEach(t => {
-      const opt = document.createElement('option');
-      opt.value = t; opt.textContent = t;
-      tagSel.appendChild(opt);
-    });
-    applyFilters();
+// ============================================================
+// INITIALIZATION
+// ============================================================
+async function init() {
+  const [judgesData, barData, statePaths] = await Promise.all([
+    fetch('../data/processed/explorer_data.json').then(r => r.json()),
+    fetch('../data/processed/bar_opinions.json').then(r => r.json()),
+    fetch('../data/us-states-paths.json').then(r => r.json()),
+  ]);
+
+  JUDGES_DATA = judgesData;
+  BAR_DATA = barData.items || barData;
+  STATE_PATHS = statePaths;
+
+  // Update header
+  const usCount = JUDGES_DATA.filter(d => d.jurisdiction === 'US').length;
+  document.getElementById('headerSubtitle').textContent =
+    `${JUDGES_DATA.length} court orders and opinions on AI use (May 2023 – May 2026) · ${BAR_DATA.length} state bar opinions`;
+  document.getElementById('judgesTabBtn').textContent = `Judges (${JUDGES_DATA.length})`;
+  document.getElementById('barTabBtn').textContent = `Bar Opinions (${BAR_DATA.length})`;
+
+  // Populate judges dropdowns
+  const states = [...new Set(judgesData.filter(d => d.jurisdiction === 'US').map(d => d.state).filter(s => s && s !== '-'))].sort();
+  const stateSel = document.getElementById('stateFilter');
+  states.forEach(s => { const opt = document.createElement('option'); opt.value = s; opt.textContent = s; stateSel.appendChild(opt); });
+
+  const allTags = new Set();
+  judgesData.forEach(d => { if (Array.isArray(d.applicableTo)) d.applicableTo.forEach(t => allTags.add(t)); });
+  const tagSel = document.getElementById('tagFilter');
+  [...allTags].sort().forEach(t => { const opt = document.createElement('option'); opt.value = t; opt.textContent = t; tagSel.appendChild(opt); });
+
+  // Populate sanction type filter
+  const allSanctionTypes = new Set();
+  judgesData.forEach(d => { if (d.sanction_types && d.sanction_types.types) d.sanction_types.types.forEach(t => allSanctionTypes.add(t)); });
+  const stSel = document.getElementById('sanctionTypeFilter');
+  [...allSanctionTypes].sort().forEach(t => { const opt = document.createElement('option'); opt.value = t; opt.textContent = SANCTION_TYPE_LABELS[t] || t; stSel.appendChild(opt); });
+
+  // Build MiniSearch for judges
+  judgesMiniSearch = new MiniSearch({
+    fields: ['name', 'judge', 'court', 'state', 'summary', 'ai_type', '_tags'],
+    storeFields: ['id'],
+    idField: 'id',
+    searchOptions: { boost: { judge: 2, name: 2 }, fuzzy: 0.2, prefix: true }
+  });
+  judgesMiniSearch.addAll(judgesData.map(d => ({
+    ...d,
+    _tags: Array.isArray(d.applicableTo) ? d.applicableTo.join(' ') : ''
+  })));
+
+  // Build MiniSearch for bar opinions
+  barMiniSearch = new MiniSearch({
+    fields: ['name', 'opinion_title', 'summary', '_rules', 'key_authority'],
+    storeFields: ['slug'],
+    idField: 'slug',
+    searchOptions: { boost: { name: 2, opinion_title: 2 }, fuzzy: 0.2, prefix: true }
+  });
+  barMiniSearch.addAll(BAR_DATA.map(d => ({
+    ...d,
+    _rules: Array.isArray(d.key_rules) ? d.key_rules.join(' ') : ''
+  })));
+
+  // Render bar map
+  renderBarMap();
+
+  // Wire up event listeners
+  document.getElementById('search').addEventListener('input', applyJudgesFilters);
+  document.getElementById('typeFilter').addEventListener('change', applyJudgesFilters);
+  document.getElementById('stateFilter').addEventListener('change', applyJudgesFilters);
+  document.getElementById('consequenceFilter').addEventListener('change', applyJudgesFilters);
+  document.getElementById('tagFilter').addEventListener('change', applyJudgesFilters);
+  document.getElementById('sanctionTypeFilter').addEventListener('change', applyJudgesFilters);
+
+  document.getElementById('chips').addEventListener('click', e => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    const f = chip.dataset.filter;
+    if (activeChips.has(f)) {
+      activeChips.delete(f);
+      chip.classList.remove('active', 'active-red', 'active-orange', 'active-green');
+    } else {
+      activeChips.add(f);
+      if (f === 'prohibited') chip.classList.add('active-red');
+      else if (f === 'pro_se' || f === 'attorney') chip.classList.add('active-orange');
+      else chip.classList.add('active');
+    }
+    applyJudgesFilters();
   });
 
-document.getElementById('search').addEventListener('input', applyFilters);
-document.getElementById('typeFilter').addEventListener('change', applyFilters);
-document.getElementById('stateFilter').addEventListener('change', applyFilters);
-document.getElementById('consequenceFilter').addEventListener('change', applyFilters);
-document.getElementById('tagFilter').addEventListener('change', applyFilters);
+  document.getElementById('barSearch').addEventListener('input', applyBarFilters);
+  document.getElementById('barStatusFilter').addEventListener('change', applyBarFilters);
 
-document.getElementById('chips').addEventListener('click', e => {
-  const chip = e.target.closest('.chip');
-  if (!chip) return;
-  const f = chip.dataset.filter;
-  if (activeChips.has(f)) {
-    activeChips.delete(f);
-    chip.classList.remove('active', 'active-red', 'active-orange', 'active-green');
-  } else {
-    activeChips.add(f);
-    if (f === 'prohibited') chip.classList.add('active-red');
-    else if (f === 'pro_se' || f === 'attorney') chip.classList.add('active-orange');
-    else chip.classList.add('active');
-  }
-  applyFilters();
-});
+  // Initial render
+  applyJudgesFilters();
+  applyBarFilters();
+}
+
+init();
 </script>
 </body>
 </html>
