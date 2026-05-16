@@ -1,0 +1,918 @@
+---
+title: 'AI Court Orders Explorer'
+published: true
+process:
+    markdown: false
+    twig: false
+metadata:
+    description: 'Check if your court or judge has an AI standing order, warning, or sanctions case. 663 court orders on AI use in legal proceedings.'
+---
+
+<style>
+html { scroll-behavior: auto !important; }
+.ex * { box-sizing: border-box; margin: 0; padding: 0; }
+.ex { font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; color: #3a414e; }
+
+/* Hero — search bar only */
+.ex-hero { background: #1e293b; padding: 76px 24px 16px; text-align: center; }
+.ex-hero .search-wrap { max-width: 700px; margin: 0 auto; position: relative; }
+.ex-hero .hero-search { width: 100%; padding: 14px 20px 14px 48px; border: 2px solid #475569; border-radius: 10px; font-size: 18px; background: #0f172a; color: white; outline: none; transition: border-color 0.2s; }
+.ex-hero .hero-search::placeholder { color: #64748b; }
+.ex-hero .hero-search:focus { border-color: #3b82f6; }
+.ex-hero .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 18px; }
+
+/* Stats bar */
+.ex-stats { display: flex; justify-content: center; gap: 24px; padding: 10px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+.ex-stat { text-align: center; }
+.ex-stat .num { font-size: 18px; font-weight: 700; color: #3a414e; }
+.ex-stat .label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+.ex-stat.warn .num { color: #ea580c; }
+.ex-stat.danger .num { color: #dc2626; }
+.ex-stat.info .num { color: #2563eb; }
+
+/* Map toggle */
+.map-toggle { display: flex; align-items: center; gap: 6px; padding: 6px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; cursor: pointer; font-size: 12px; color: #64748b; font-weight: 500; transition: background 0.15s; }
+.map-toggle:hover { background: #f1f5f9; }
+.map-toggle .toggle-arrow { font-size: 10px; transition: transform 0.2s; }
+.map-toggle .toggle-arrow.collapsed { transform: rotate(-90deg); }
+
+/* Choropleth map */
+.ex-map-wrap { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 12px 24px 16px; text-align: center; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease; }
+.ex-map-wrap.collapsed { max-height: 0; padding: 0 24px; opacity: 0; border-bottom: none; }
+.ex-map-wrap h2 { font-size: 18px; font-weight: 600; margin-bottom: 12px; color: #3a414e; }
+.ex-map-svg-container { max-width: 900px; margin: 0 auto; position: relative; }
+.ex-map-svg-container svg { width: 100%; height: auto; }
+.ex-map-svg-container svg path { stroke: #fff; stroke-width: 1; cursor: pointer; transition: opacity 0.15s; }
+.ex-map-svg-container svg path:hover { opacity: 0.75; }
+.ex-map-svg-container svg text { font-size: 14px; font-weight: 700; fill: #3a414e; pointer-events: none; text-anchor: middle; dominant-baseline: central; }
+.ex-map-legend { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; font-size: 12px; color: #64748b; }
+.ex-map-legend .legend-bar { width: 180px; height: 12px; border-radius: 3px; background: linear-gradient(to right, #E8E8E8, #15803d); }
+.ex-map-tooltip { position: absolute; background: #1e293b; color: white; padding: 6px 10px; border-radius: 6px; font-size: 12px; pointer-events: none; display: none; z-index: 10; white-space: nowrap; }
+
+/* Filters */
+.ex-filters { background: white; border-bottom: 1px solid #e2e8f0; padding: 0; }
+.ex-filters-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 8px 24px; }
+.ex-filters-row + .ex-filters-row { border-top: 1px solid #f1f5f9; padding-top: 6px; padding-bottom: 8px; }
+.ex-filters select { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: white; }
+.ex-filters .chip { padding: 4px 10px; border-radius: 12px; font-size: 12px; cursor: pointer; border: 1px solid #e2e8f0; background: white; transition: all 0.15s; }
+.ex-filters .chip:hover { background: #f1f5f9; }
+.ex-filters .chip.on { background: #2563eb; color: white; border-color: #2563eb; }
+.ex-filters .chip.on-red { background: #dc2626; color: white; border-color: #dc2626; }
+.ex-filters .chip.on-orange { background: #ea580c; color: white; border-color: #ea580c; }
+.ex-count { font-size: 13px; color: #64748b; margin-left: auto; }
+
+/* Category quick-filter buttons — inline with filters */
+.ex-categories { display: contents; }
+.cat-btn { padding: 4px 12px; border-radius: 14px; font-size: 12px; font-weight: 500; border: 1.5px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; }
+.cat-btn:hover { border-color: #3b82f6; }
+.cat-btn.active { background: #1e40af; color: white; border-color: #1e40af; }
+.cat-btn .cat-count { background: rgba(0,0,0,0.08); padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+.cat-btn.active .cat-count { background: rgba(255,255,255,0.25); }
+
+/* Active filter chip bar */
+.ex-filter-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 24px; align-items: center; min-height: 0; }
+.ex-filter-chips:empty { display: none; }
+.filter-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; font-size: 12px; color: #1e40af; cursor: pointer; transition: all 0.15s; }
+.filter-chip:hover { background: #dbeafe; }
+.filter-chip .fc-x { font-weight: 700; font-size: 14px; line-height: 1; opacity: 0.6; }
+.filter-chip .fc-x:hover { opacity: 1; }
+.filter-chip.clear-all { background: #fee2e2; border-color: #fecaca; color: #991b1b; }
+.filter-chip.clear-all:hover { background: #fecdd3; }
+
+/* Date range inputs */
+.ex-filters input[type="month"] { padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; color: #334155; background: white; }
+.ex-filters .date-sep { font-size: 12px; color: #94a3b8; }
+
+/* Requirement mini-pills (shared) */
+.rq { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.rq.rq-disclose { background: #dbeafe; color: #1e40af; }
+.rq.rq-certify { background: #fce7f3; color: #9d174d; }
+.rq.rq-verify { background: #d1fae5; color: #065f46; }
+.rq.rq-prompts { background: #fef3c7; color: #92400e; }
+.rq.rq-sections { background: #e0e7ff; color: #3730a3; }
+.rq.rq-tool { background: #f3e8ff; color: #6b21a8; }
+.rq.rq-prohibit { background: #fee2e2; color: #991b1b; }
+
+/* Bi-panel layout (list + detail) */
+.ex-bipanel { display: flex; height: calc(100vh - 60px); overflow: hidden; border-top: 2px solid #cbd5e1; }
+.ex-left { width: 50%; overflow-y: auto; border-right: 1px solid #e2e8f0; height: 100%; }
+.ex-list { overflow-y: auto; height: 100%; background: #fafbfc; }
+.ex-detail { width: 50%; overflow-y: auto; padding: 24px; background: white; height: 100%; }
+
+.list-header { padding: 8px 20px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #475569; position: sticky; top: 0; z-index: 1; }
+.ex-row { padding: 12px 20px; border-bottom: 1px solid #e2e8f0; cursor: pointer; transition: background 0.1s; }
+.ex-row:hover { background: #f0f4ff; }
+.ex-row.sel { background: #eff6ff; border-left: 3px solid #2563eb; }
+.ex-row .r-top { display: flex; align-items: center; gap: 10px; }
+.ex-row .r-judge { font-size: 14px; font-weight: 500; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ex-row .r-counts { font-size: 12px; color: #64748b; flex-shrink: 0; }
+.ex-row .r-meta { font-size: 12px; color: #64748b; margin-top: 4px; display: flex; gap: 8px; }
+.ex-row .r-preview { font-size: 12px; color: #94a3b8; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ex-row .r-reqs { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+
+/* Detail panel */
+.d-empty { color: #94a3b8; text-align: center; margin-top: 80px; font-size: 15px; }
+.d-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; line-height: 1.4; }
+.d-alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; font-weight: 500; }
+.d-alert.sanctions { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.d-alert.warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+.d-alert.standing { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+.d-meta { display: grid; grid-template-columns: 100px 1fr; gap: 6px 12px; font-size: 13px; margin-bottom: 16px; }
+.d-meta dt { color: #64748b; font-weight: 500; }
+.d-meta dd { color: #3a414e; margin: 0; }
+.d-link { display: inline-block; padding: 10px 20px; background: #2563eb; color: white; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; margin: 12px 0; }
+.d-link:hover { background: #1d4ed8; color: white; }
+.d-nolink { color: #94a3b8; font-size: 13px; margin: 12px 0; }
+.d-section { margin-top: 20px; }
+.d-section h3 { font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+.d-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.d-tag { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.d-req { padding: 3px 8px; background: #f1f5f9; border-radius: 4px; font-size: 12px; color: #94a3b8; }
+.d-req.on { background: #dbeafe; color: #1e40af; }
+.d-summary { font-size: 14px; line-height: 1.7; color: #334155; white-space: pre-wrap; }
+
+/* Judge detail entry styles */
+.jd-entry { padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+.jd-entry:last-child { border-bottom: none; }
+.jd-entry .jd-name { font-size: 14px; color: #3a414e; font-weight: 500; }
+.jd-entry .jd-meta { font-size: 12px; color: #64748b; margin-top: 2px; }
+.jd-entry .jd-link { font-size: 12px; color: #2563eb; text-decoration: underline; }
+
+/* Judge detail requirement styles */
+.jd-req { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; align-items: flex-start; }
+.jd-req:last-child { border-bottom: none; }
+.jd-req .jd-icon { font-size: 18px; flex-shrink: 0; width: 28px; text-align: center; }
+.jd-req .jd-label { font-size: 14px; font-weight: 600; color: #3a414e; }
+.jd-req .jd-action { font-size: 13px; color: #475569; margin-top: 2px; }
+
+/* Timeline */
+.jd-timeline { position: relative; padding-left: 18px; margin-top: 4px; }
+.jd-timeline::before { content: ''; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 2px; background: #e2e8f0; }
+.tl-entry { display: flex; gap: 12px; padding: 10px 0; position: relative; }
+.tl-entry+.tl-entry { border-top: 1px solid #f8fafc; }
+.tl-date { flex-shrink: 0; width: 80px; font-size: 12px; color: #64748b; padding-top: 2px; }
+.tl-dot { position: absolute; left: -15px; top: 14px; width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; border: 2px solid #f8fafc; z-index: 1; }
+.tl-body { flex: 1; min-width: 0; }
+.tl-header { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 4px; }
+.tl-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.tl-badge.so { background: #dbeafe; color: #1e40af; }
+.tl-badge.jo { background: #fee2e2; color: #991b1b; }
+.tl-badge.ao { background: #f3e8ff; color: #6b21a8; }
+.tl-badge.lr { background: #d1fae5; color: #065f46; }
+.tl-badge.pd { background: #e0e7ff; color: #3730a3; }
+.tl-consq { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.tl-consq.sn { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.tl-consq.wn { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.tl-name { font-size: 13px; font-weight: 500; color: #3a414e; line-height: 1.4; }
+.tl-summary { font-size: 13px; color: #475569; margin-top: 3px; line-height: 1.6; }
+.tl-link { font-size: 12px; color: #2563eb; text-decoration: none; margin-top: 4px; display: inline-block; }
+.tl-link:hover { text-decoration: underline; }
+
+/* Footer */
+.ex-footer { padding: 12px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; text-align: center; }
+.ex-footer a { color: #2563eb; text-decoration: none; }
+.ex-footer a:hover { text-decoration: underline; }
+
+.hidden { display: none !important; }
+
+@media (max-width: 900px) {
+  .ex-bipanel { flex-direction: column; height: auto; overflow: visible; }
+  .ex-left, .ex-detail { width: 100%; height: auto; }
+  .ex-list { max-height: 50vh; }
+  .ex-stats { gap: 16px; }
+  .ex-stat .num { font-size: 22px; }
+  .ex-categories { gap: 6px; padding: 8px 16px 0; }
+  .cat-btn { font-size: 12px; padding: 4px 10px; }
+  .ex-filter-chips { padding: 0 16px; }
+}
+
+@media print {
+  .ex-hero, .ex-stats, .ex-left, .ex-footer, .map-toggle, .ex-map-wrap, .ex-categories, .ex-filters, .ex-filter-chips { display: none !important; }
+  .ex-bipanel { display: block; height: auto; overflow: visible; }
+  .ex-detail { width: 100%; padding: 0; max-height: none; }
+}
+</style>
+
+<div class="ex" id="exApp">
+
+<div class="ex-hero">
+  <div class="search-wrap">
+    <span class="search-icon">&#x1F50D;</span>
+    <input class="hero-search" type="text" id="exHeroSearch" placeholder="Search judges, courts, or states..." autocomplete="off">
+  </div>
+</div>
+<div class="ex-stats" id="exStats" style="display:none;"></div>
+
+<div class="map-toggle" id="mapToggle"><span class="toggle-arrow" id="toggleArrow">&#9660;</span> AI Court Orders by State</div>
+<div class="ex-map-wrap" id="exMapWrap">
+  <div class="ex-map-svg-container" id="exMapContainer">
+    <div class="ex-map-tooltip" id="exMapTooltip"></div>
+  </div>
+  <div class="ex-map-legend">
+    <span>Fewer orders</span>
+    <div class="legend-bar"></div>
+    <span>More orders</span>
+  </div>
+</div>
+<div class="ex-filters" id="exFilters">
+  <div class="ex-filters-row">
+    <div class="ex-categories" id="exCategories"></div>
+    <select id="fType"><option value="">All Types</option><option value="Standing Order">Standing Orders</option><option value="Local Rules">Local Rules</option><option value="Administrative Order">Admin Orders</option><option value="Judicial Opinion">Opinions</option></select>
+    <select id="fState"><option value="">All States</option></select>
+    <select id="fJudge"><option value="">All Judges</option></select>
+    <select id="fOutcome"><option value="">All Outcomes</option><option value="sanctions_attorney">Sanctions (Attorney)</option><option value="sanctions_party">Sanctions (Party)</option><option value="warning">Warning</option><option value="none">No Consequence</option></select>
+    <select id="fTag"><option value="">All Sectors</option></select>
+    <input type="hidden" id="fDateFrom">
+    <input type="hidden" id="fDateTo">
+  </div>
+  <div class="ex-filters-row">
+    <span class="chip" data-f="req_disclose">Requires Disclosure</span>
+    <span class="chip" data-f="prohibited">Prohibits AI</span>
+    <span class="chip" data-f="at_filings">Filings/Drafting</span>
+    <span class="chip" data-f="at_research">Research</span>
+    <span class="chip" data-f="at_consequences">Consequences</span>
+    <span class="ex-count" id="exCount"></span>
+  </div>
+</div>
+<div class="ex-filter-chips" id="exFilterChips"></div>
+
+<div class="ex-bipanel" id="exBipanel">
+  <div class="ex-left">
+    <div class="ex-list" id="exList"></div>
+  </div>
+  <div class="ex-detail" id="exDetail"><div class="d-empty">Select a judge from the list or use search to view details</div></div>
+</div>
+
+<div class="ex-footer">
+  Data from <a href="https://legalrealist.ai" target="_blank">LegalRealist AI</a> combining
+  <a href="https://law.duke.edu/dclt/rails/" target="_blank">RAILS (Duke Law)</a> &amp;
+  <a href="https://www.ropesgray.com/en/sites/artificial-intelligence-court-order-tracker" target="_blank">Ropes &amp; Gray</a>.
+  All links point to free, publicly accessible sources.
+  <a href="https://github.com/legalrealist" target="_blank">GitHub</a>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/minisearch@7.1.1/dist/umd/index.min.js"></script>
+<script>
+(function() {
+var DATA=[], filtered=[], selJudge=null, chips=new Set(), ms=null;
+var STATE_PATHS = {"AL":"m 643,467.4 .4,-7.3 -.9,-1.2 -1.7,-.7 -2.5,-2.8 .5,-2.9 48.8,-5.1 -.7,-2.2 -1.5,-1.5 -.5,-1.4 .6,-6.3 -2.4,-5.7 .5,-2.6 .3,-3.7 2.2,-3.8 -.2,-1.1 -1.7,-1 v -3.2 l -1.8,-1.9 -2.9,-6.1 -12.9,-45.8 -45.7,4 1.3,2 -1.3,67 4.4,33.2 .9,-.5 1.3,.1 .6,.4 .8,-.1 2,-3.8 v -2.3 l 1.1,-1.1 1.4,.5 3.4,6.4 v .9 l -3.3,2.2 3.5,-.4 4.9,-1.6 z","AK":"m 15.8,572 h 2.4 l .7,.7 -1,1.2 -1.9,.2 -2.5,1.3 -3.7,-.1 2.2,-.9 .3,-1.1 2.5,-.3 z m 8.3,-1.7 1.3,.5 h .9 l .5,1.2 .3,-.6 .9,.2 1.1,1.5 0,.5 -4.2,1.9 -2.4,-.1 -1,-.5 -1.1,.7 -2,0 -1.1,-1.4 4.7,-.5 z m 5.4,-.1 1,.1 .7,.7 v 1 l -1.3,.1 -.9,-1.1 z m 2.5,.3 1.3,-.1 -.1,1 -1.1,.6 z m .3,2.2 3.4,-.1 .2,1.1 -1.3,.1 -.3,-.5 -.8,.6 -.4,-.6 -.9,-.2 z m 166.3,7.6 2.1,.1 -1,1.9 -1.1,-.1 -.4,-.8 .5,-1.3 m -1.1,-2.9 .6,-1.3 -.2,-2.3 2.4,-.5 4.5,4.4 1.3,3.4 1.9,1.6 .3,5.1 -1.4,0 -1.3,-2.3 -3.1,-2.4 h -.6 l 1.1,2.8 1.7,.2 .2,2.1 -.9,.1 -4.1,-4.4 -.1,-.9 1.9,-1 0,-1 -.5,-.8 -1.6,-.6 -1.7,-1.3 1.4,.1 .5,-.4 -.6,-.9 -.6,.5 z m -3.6,-9.1 1.3,.1 2.4,2.5 -.2,.8 -.8,-.1 -.1,1.8 .5,.5 0,1.5 -.8,.3 -.4,1.2 -.8,-.4 -.4,-2.2 1.1,-1.4 -2.1,-2.2 .1,-1.2 z m 1.5,-1.5 1.9,.2 2.5,.1 3.4,3.2 -.2,.5 -1.1,.6 -1.1,-.2 -.1,-.7 -1.2,-1.6 -.3,.7 1,1.3 -.2,1.2 -.8,-.1 -1.3,.2 -.1,-1.7 -2.6,-2.8 z m -12.7,-8.9 .9,-.4 h 1.6 l .7,-.5 4.1,2.2 .1,1.5 -.5,.5 h -.8 l -1.4,-.7 1.1,1.3 1.8,0 .5,2 -.9,0 -2.2,-1.5 -1.1,-.2 .6,1.3 .1,.9 .8,-.6 1.7,1.2 1.3,-.1 -.2,.8 1.9,4.3 0,3.4 .4,2.1 -.8,.3 -1.2,-2 -.5,-1.5 -1.6,-1.6 -.2,-2.7 -.6,-1.7 h -.7 l .3,1.1 0,.5 -1.4,1 .1,-3.3 -1.6,-1.6 -1.3,-2.3 -1.2,-1.2 z m 7.2,-2.3 1.1,1.8 2.4,-.1 1,2.1 -.6,.6 2,3.2 v 1.3 l -1.2,.8 v .7 l -2,1.9 -.5,-1.4 -.1,-1.3 .6,-.7 v -1.1 l -1.5,-1.9 -.5,-3.7 -.9,-1.5 z m -56.7,-18.3 -4,4.1 v 1.6 l 2.1,-.8 .8,-1.9 2.2,-2.4 z m -31.6,16.6 0,.6 1.8,1.2 .2,-1.4 .6,.9 3.5,.1 .7,-.6 .2,-1.8 -.5,-.7 -1.4,0 0,-.8 .4,-.6 v -.4 l -1.5,-.3 -3.3,3.6 z m -8.1,6.2 1.5,5.8 h 2.1 l 2.4,-2.5 .3,1.2 6.3,-4 .7,-1 -1,-1.1 v -.7 l .5,-1.3 -.9,-.1 -2,1 0,-1.2 -2.7,-.6 -2.4,.3 -.2,3.4 -.8,-2 -1.5,-.1 -1,.6 z m -2.2,8.2 .1,-.7 2.1,-1.3 .6,.3 1.3,.2 1.3,1.2 -2.2,-.2 -.4,-.6 -1,.6 z m -5.2,3.3 -1.1,.8 1.5,1.4 .8,-.7 -.1,-1.3 z m -6.3,-7.9 1.4,.1 .4,.6 -1.8,.1 z m -13.9,11.9 v .5 l .7,.1 -.1,-.6 z m -.4,-3.2 -1,1 v .5 l .7,1.1 1,-1 -.7,-.1 z m -2,-.8 -.3,1 -1.3,.1 -.4,.2 0,1.3 -.5,.9 .6,0 .7,-.9 .8,-.1 .9,-1 .2,-1.3 z m -4.4,-2 -.2,1.8 1.4,.8 1.2,-.6 0,-1 1.7,-.3 -.1,-.6 -.9,-.2 -.7,.6 -.9,-.5 z m -4.9,-.1 1,.7 -.3,1.2 -1.4,-1.1 z m -4.2,1.3 1.4,.1 -.7,.8 z m -3.5,3 1.8,1.1 -1.7,.1 z m -25.4,-31.2 1.2,.6 -.8,.6 z m -.7,-6.3 .4,1.2 .8,-1.2 z m 24.3,-19.3 1.5,-.1 .9,.4 1.1,-.5 1.3,-.1 1.6,.8 .8,1.9 -.1,.9 -1.2,2 -2.4,-.2 -2.1,-1.8 -1,-.4 -1.1,-2 z m -21.1,-14.4 .1,1.9 2,2 v .5 l -.8,-.2 -1.7,-.8 -.3,-1.1 -.3,-1.6 z m 18.3,-23.3 v 1.2 l 1.9,1.8 h 2.3 l .6,1.1 v 1.6 l 2.1,1.9 1.8,1.2 -.1,.7 -.7,1.1 -1.4,-1.2 -2.1,.1 -.8,-.8 -.9,-2.1 -1.5,-2.2 -2.6,-.1 -1,-.7 1,-2.1 z m 16.8,-4.5 1,0 .1,1.1 h -1 z m 16.2,19.7 .9,.1 0,1.2 -1.7,-.5 z m 127.8,77.7 -1.2,.4 -.1,1.1 h 1.2 z m -157.6,-4.5 -1.3,-.4 -4.1,.6 -2.8,1.4 -.1,1.9 1.9,.7 1.5,-.9 1.7,-.1 4.7,1.4 .1,-1.3 -1.6,-1.1 z m 2.1,2.3 -.4,-1.4 1.2,.2 .1,1.4 1.8,0 .4,-2.5 .3,2.4 2.5,-.1 3.2,-3.3 .8,.1 -.7,1.3 1.4,.9 4.2,-.2 2.6,-1.2 1.4,-.1 .3,1.5 .6,-.5 .4,-1.4 5.9,.2 1.9,-1.6 -1.3,-1.1 .6,-1.2 2.6,.2 -.2,-1.2 2.5,.2 .7,-1.1 1.1,.2 4.6,-1.9 .2,-1.7 5.6,-2.4 2,-1.9 1.2,-.6 1.3,.8 2.3,-.9 1.1,-1.9 .5,-1.3 1.7,-.9 1.5,-.7 .4,-1.4 -1.1,-1.7 -2.2,-.2 -.2,-1.3 .8,-1.6 1.4,-.2 1.3,-1.5 1.9,-.1 3.4,-3.2 .4,-1.4 1.5,-2.3 3.8,-4.1 2.5,-.9 1.9,-.9 2.1,.8 1.4,2.6 -1.5,0 -1.4,-1.5 -3,2 -1.7,.1 -.2,3.1 -3.1,4.9 .6,2 2.3,0 -.6,1 -1.4,.1 -2.4,1.8 0,.9 1.9,1 3.4,-.6 1.4,-1.7 1.4,.1 3,-1.7 .5,-2.3 1.6,-.1 6.3,.8 1,-1.1 1,-4.5 -1.6,1.1 .6,-2.2 -1.6,-1.4 .8,-1.5 .1,1.5 3.4,0 .7,-1 1.6,-.1 -.3,1.7 1.9,.1 -1.9,1.3 4.1,1.1 -3.5,.4 -1.3,1.2 .9,1.4 4.6,-1.7 2.3,1.7 .7,-.9 .6,1.4 4,2.3 h 2.9 l 3.9,-.5 4.3,1.1 2,1.9 4.5,.4 1.8,-1.5 .8,2.4 -1.8,.7 1.2,1.2 7.4,3.8 1.4,2.5 5.4,4.1 3.3,-2 -.6,-2.2 -3.5,-2 3.1,1.2 .5,-.7 .9,1.3 0,2.7 2.1,-.6 2.1,1.8 -2.5,-9.8 1.2,1.3 1.4,6 2.2,2.5 2.4,-.4 1.8,3.5 h .9 l .6,5.6 3.4,.5 1.6,2.2 1.8,1.1 .4,2.8 -1.8,2.6 2.9,1.6 1.2,-2.4 -.2,3.1 -.8,.9 1.4,1.7 .7,-2.4 -.2,-1.2 .8,.2 .6,2.3 -1,1.4 .6,2.6 .5,.4 .3,-1.6 .7,.6 -.3,2 1.2,.2 -.4,.9 1.7,-.1 0,-1 h -1 l .1,-1.7 -.8,-.6 1.7,-.3 .5,-.8 0,-1.6 .5,1.3 -.6,1.8 1.2,3.9 1.8,.1 2.2,-4.2 .1,-1.9 -1.3,-4 -.1,-1.2 .5,-1.2 -.7,-.7 -1.7,.1 -2.5,-2 -1.7,0 -2,-1.4 -1.5,0 -.5,-1.6 -1.4,-.3 -.2,-1.5 -1,-.5 .1,-1.7 -5.1,-7.4 -1.8,-1.5 v -1.2 l -4.3,-3.5 -.7,-1.1 -1.6,-2 -1.9,-.6 0,-2.2 -1.2,-1.3 -1.7,-.7 -2.1,1.3 -1.6,2.1 -.4,2.4 -1.5,.1 -2.5,2.7 -.8,-.3 v -2.5 l -2.4,-2.2 -2.3,-2 -.5,-2 -2.5,-1.3 .2,-2.2 -2.8,-.1 -.7,1.1 -1.2,0 -.7,-.7 -1.2,.8 -1.8,-1.2 0,-85.8 -6.9,-4.1 -1.8,-.5 -2.2,1.1 -2.2,.1 -2.3,-1.6 -4.3,-.6 -5.8,-3.6 -5.7,-.4 -2,.5 -.2,-1.8 -1.8,-.7 1.1,-1 -.2,-.9 -3.2,-1.1 h -2.4 l -.4,.4 -.9,-.6 .1,-2.6 -.8,-.9 -2.5,2.9 -.8,-.1 v -.8 l 1.7,-.8 v -.8 l -1.9,-2.4 -1.1,-.1 -4.5,3.1 h -3.9 l .4,-.9 -1.8,-.1 -5.2,3.4 -1.8,0 -.6,-.8 -2.7,1.5 -3.6,3.7 -2.8,2.7 -1.5,1.2  -2.6,.1 -2.2,-.4 -2.3,-1.3 v 0 l -2.8,3.9 -.1,2.4 2.6,2.4 2.1,4.5 .2,5.3 2.9,2 3.4,.4 .7,.8 -1.5,2.3 .7,2.7 -1.7,-2.6 v -2.4 l -1.5,-.3 .1,1.2 .7,2.1 2.9,3.7 h -1.4 l -2.2,1.1 -6.2,-2.5 -.1,-2 1.4,-1.3 0,-1.4 -2.1,-.5 -2.3,.2 -4.8,.2 1.5,2.3 -1.9,-1.8 -8.4,1.2 -.8,1.5 4.9,4.7 -.8,1.4 -.3,2 -.7,.8 -.1,1.9 4.4,3.6 4.1,.2 4.6,1.9 h 2 l .8,-.6 3.8,.1 .1,-.8 1.2,1.1 .1,2 -2.5,-.1 .1,3.3 .5,3.2 -2.9,2.7 -1.9,-.1 -2,-.8 -1,.1 -3.1,2.1 -1.7,.2 -1.4,-2.8 -3.1,0 -2.2,2 -.5,1.8 -3.3,1.8 -5.3,4.3 -.3,3.1 .7,2.2 1,1.2 1,-.4 .9,1 -.8,.6 -1.5,.9 1.1,1.5 -2.6,1.1 .8,2.2 1.7,2.3 .8,4.1 4,1.5 2.6,-.8 1.7,-1.1 .5,2.1 .3,4.4 -1.9,1.4 0,4.4 -.6,.9 h -1.7 l 1.7,1.2 2.1,-.1 .4,-1 4.6,-.6 2,2.6 1.3,-.7 1.3,5.1 1,.5 1,-.7 .1,-2.4 .9,-1 .7,1.1 .2,1.6 1.6,.4 4.7,-1.2 .2,1.2 -2,1.1 -1.6,1.7 -2.8,7 -4.3,2 -1.4,1.5 -.3,1.4 -1,-.6 -9.3,3.3 -1.8,4.1 -1.3,-.4 .5,-1.1 -1.5,-1.4 -3.5,-.2 -5.3,3.2 -2.2,1.3 -2.3,0 -.5,2.4 z","AZ":"m 139.6,387.6 3,-2.2 .8,-2.4 -1,-1.6 -1.8,-.2 -1.1,-1.6 1.1,-6.9 1.6,-.3 2.4,-3.2 1.6,-7 2.4,-3.6 4.8,-1.7 1.3,-1.3 -.4,-1.9 -2.3,-2.5 -1.2,-5.8 -1.4,-1.8 -1.3,-3.4 .9,-2.1 1.4,-3 .5,-2.9 -.5,-4.9 1,-13.6 3.5,-.6 3.7,1.4 1.2,2.7 h 2 l 2.4,-2.9 3.4,-17.5 46.2,8.2 40,6 -17.4,124.1 -37.3,-5.4 -64.2,-37.5 .5,-2.9 2,-1.8 z","AR":"m 584.2,367 .9,-2.2 1.2,.5 .7,-1 -.8,-.7 .3,-1.5 -1.1,-.9 .6,-1 -.1,-1.5 -1.1,-.1 .8,-.8 1.3,.8 .3,-1.4 -.4,-1.1 .1,-.7 2,.6 -.4,-1.5 1.6,-1.3 -.5,-.9 -1.1,.1 -.6,-.9 .9,-.9 1.6,-.2 .5,-.8 1.4,-.2 -.1,-.8 -.9,-.9 v -.5 h 1.5 l .4,-.7 -1.4,-1 -.1,-.6 -11.2,.8 2.8,-5.1 1.7,-1.5 v -2.2 l -1.6,-2.5 -39.8,2 -39.1,.7 4.1,24.4 -.7,39 2.6,2.3 2.8,-1.3 3.2,.8 .2,11.9 52.3,-1.3 1.2,-1.5 .5,-3 -1.5,-2.3 -.5,-2.2 .9,-.7 v -.8 l -1.7,-1.1 -.1,-.7 1.6,-.9 -1.2,-1.1 1.7,-7.1 3.4,-1.6 v -.8 l -1.1,-1.4 2.9,-5.4 h 1.9 l 1.5,-1.2 -.3,-5.2 3.1,-4.5 1.8,-.6 -.5,-3.1 z","CA":"m 69.4,365.6 3.4,5.2 -1.4,.1 -1.8,-1.9 z m 1.9,-9.8 1.8,4.1 2.6,1 .7,-.6 -1.3,-2.5 -2.6,-2.4 z m -19.9,-19 v 2.4 l 2,1.2 4.4,-.2 1,-1 -3.1,-.2 z m -5.9,.1 3.3,.5 1.4,2.2 h -3.8 z m 47.9,45.5 -1,-3 .2,-3 -.4,-7.9 -1.8,-4.8 -1.2,-1.4 -.6,-1.5 -7,-8.6 -3.6,.1 -2,-1.9 1.1,-1.8 -.7,-3.7 -2.2,-1.2 -3.9,-.6 -2.8,-1.3 -1.5,-1.9 -4.5,-6.6 -2.7,-2.2 -3.7,-.5 -3.1,-2.3 -4.7,-1.5 -2.8,-.3 -2.5,-2.5 .2,-2.8 .8,-4.8 1.8,-5.1 -1.4,-1.6 -4,-9.4 -2.7,-3.7 -.4,-3 -1.6,-2.3 .2,-2.5 -2,-5 -2.9,-2.7 .6,-7.1 2.4,-.8 1.8,-3.1 -.4,-3.2 -1,-.9 h -2.5 l -2.5,-3.3 -1.5,-3.5 v -7.5 l 1.2,-4.2 .2,-2.1 2.5,.2 -.1,1.6 -.8,.7 v 2.5 l 3.7,3.2 v -4.7 l -1.4,-3.4 .5,-1.1 -1,-1.7 2.8,-1.5 -1.9,-3 -1.4,.5 -1.5,3.8 .5,1.3 -.8,1 -.9,-.1 -5.4,-6.1 .7,-5.6 -1.1,-3.9 -6.5,-12.8 .8,-10.7 2.3,-3.6 .2,-6.4 -5.5,-11.1 .3,-5.2 6.9,-7.5 1.7,-2.4 -.1,-1.4 4,-9.2 .1,-8.4 .9,-2.5 66.1,18.6 -16.4,63.1 1.1,3.5 70.4,105 -.9,2.1 1.3,3.4 1.4,1.8 1.2,5.8 2.3,2.5 .4,1.9 -1.3,1.3 -4.8,1.7 -2.4,3.6 -1.6,7 -2.4,3.2 -1.6,.3 -1.1,6.9 1.1,1.6 1.8,.2 1,1.6 -.8,2.4 -3,2.2 -2.2,-.1 z","CO":"m 374.6,323.3 -16.5,-1 -51.7,-4.8 -52.6,-6.5 11.5,-88.3 44.9,5.7 37.5,3.4 33.1,2.4 -1.4,22.1 z","CT":"m 873.5,178.9 .4,-1.1 -3.2,-12.3 -.1,-.3 -14.9,3.4 v .7 l -.9,.3 -.5,-.7 -10.5,2.4 2.8,16.3 1.8,1.5 -3.5,3.4 1.7,2.2 5.4,-4.5 1.7,-1.3 h .8 l 2.4,-3.1 1.4,.1 2.9,-1.1 h 2.1 l 5.3,-2.7 2.8,-.9 1,-1 1.5,.5 z","DE":"m 822.2,226.6 -1.6,.3 -1.5,1.1 -1.2,2.1 7.6,27.1 10.9,-2.3 -2.2,-7.6 -1.1,.5 -3.3,-2.6 -.5,-1.7 -1.8,-1 -.2,-3.7 -2.1,-2.2 -1.1,-.8 -1.2,-1.1 -.4,-3.2 .3,-2.1 1,-2.2 z","FL":"m 751.7,445.1 -4,-.7 -1.7,-.9 -2.2,1.4 v 2.5 l 1.4,2.1 -.5,4.3 -2.1,.6 -1,-1.1 -.6,-3.2 -50.1,3.3 -3.3,-6 -48.8,5.1 -.5,2.9 2.5,2.8 1.7,.7 .9,1.2 -.4,7.3 -1.1,.6 .5,.4 1,-.3 .7,-.8 10.5,-2.7 9.2,-.5 8.1,1.9 8.5,5 2.4,.8 2.2,2 -.1,2.7 h 2.4 l 1.9,-1 2.5,.1 2,-.8 2.9,-2 3.1,-2.9 1.1,-.4 .6,.5 h 1.4 l .5,-.8 -.5,-1.2 -.6,-.6 .2,-.8 2,-1.1 5,-.4 .8,1 1,.1 2.3,1 3,1.8 1.2,1.7 1.1,1.2 2.8,1.4 v 2.4 l 2.8,1.9 1,.1 1.6,1.4 .7,1.6 1,.2 .8,2.1 .7,.6 1,-1.1 2.9,.1 .5,1.4 1.1,.9 v 1.3 l 2.9,2.2 .2,9.6 -1.8,5.8 1,1.2 -.2,3.4 -.8,1.4 .7,1.2 2.3,2.3 .3,1.5 .8,1 -.4,-1.9 1.3,-.6 .8,-3.6 -3,-1.2 .1,-.6 2.6,-.4 .9,2.6 1.1,.6 .1,-2 1.1,.3 .6,.8 -.1,.7 -2.9,4.2 -.2,1.1 -1.7,1.9 v 1.1 l 3.7,3.8 5.3,7.9 1.8,2.1 v 1.8 l 2.8,4.6 2.3,.6 .7,-1.2 -2.1,.3 -3,-4.5 .2,-1.4 1.5,-.8 v -1.5 l -.6,-1.3 .9,-.9 .4,.9 .7,.5 v 4 l -1.2,-.6 -.8,.9 1.4,1.6 1,2.6 1.2,-.6 2.3,1.2 2.1,2.2 1.6,5.1 3.1,4.8 .8,-1.3 2.8,-.5 3.2,1.3 .3,1.7 3.3,3.8 .1,1.1 2.2,2.7 -.7,.5 v 2.7 l 2.7,1.4 h 1.5 l 2.7,-1.8 1.5,.3 1.1,.4 2.3,-1.7 .2,-.7 1.2,.3 2.4,-1.7 1.3,-2.3 -.7,-3.2 -.2,-1.3 1.1,-4 .6,-.2 .6,1.6 .8,-1.8 -.8,-7.2 -.4,-10.5 -1,-6.8 -.7,-1.7 -6.6,-11.1 -5.2,-9.1 -2.2,-3.3 -1.3,-3.6 -.2,-3.4 .9,-.3 v -.9 l -1.1,-2.2 -4,-4 -7.6,-9.7 -5.7,-10.4 -4.3,-10.7 -.6,-3.7 -1.2,-1 -.5,-3.8 z m 9.2,134.5 1.7,-.1 -.7,-1 z m 7.3,-1.1 v -.7 l 1.6,-.2 3.7,-3.3 1.5,-.6 2.4,-.9 .3,1.3 1.7,.8 -2.6,1.2 h -2.4 l -3.9,2.5 z m 17.2,-7.6 -3,1.4 -1,1.3 1.1,.1 z m 3.8,-2.9 -1.1,.3 -1.4,2 1.1,-.2 1.5,-1.6 z m 8.3,-15.7 -1.7,5.6 -.8,1 -1,2.6 -1.2,1.6 -.7,1.7 -1.9,2.2 v .9 l 2.7,-2.8 2.4,-3.5 .6,-2 2.1,-4.9 z","GA":"m 761.8,414.1 v 1.4 l -4.2,6.2 -1.2,.2 1.5,.5 v 2 l -.9,1.1 -.6,6 -2.3,6.2 .5,2 .7,5.1 -3.6,.3 -4,-.7 -1.7,-.9 -2.2,1.4 v 2.5 l 1.4,2.1 -.5,4.3 -2.1,.6 -1,-1.1 -.6,-3.2 -50.1,3.3 -3.3,-6 -.7,-2.2 -1.5,-1.5 -.5,-1.4 .6,-6.3 -2.4,-5.7 .5,-2.6 .3,-3.7 2.2,-3.8 -.2,-1.1 -1.7,-1 v -3.2 l -1.8,-1.9 -2.9,-6.1 -12.9,-45.8 22.9,-2.9 21.4,-3 -.1,1.9 -1.9,1 -1.4,3.2 .2,1.3 6.1,3.8 2.6,-.3 3.1,4 .4,1.7 4.2,5.1 2.6,1.7 1.4,.2 2.2,1.6 1.1,2.2 2,1.6 1.8,.5 2.7,2.7 .1,1.4 2.6,2.8 5,2.3 3.6,6.7 .3,2.7 3.9,2.1 2.5,4.8 .8,3.1 4.2,.4 z","HI":"m 317,553.7 -.2,3.2 1.7,1.9 .1,1.2 -4.8,4.5 -.1,1.2 1.9,3.2 1.7,4.2 v 2.6 l -.5,1.2 .1,3.4 4.1,2.1 1.1,1.1 1.2,-1.1 2.1,-3.6 4.5,-2.9 3.3,-.5 2.5,-1 1.7,-1.2 3.2,-3.5 -2.8,-1.1 -1.4,-1.4 .1,-1.7 -.5,-.6 h -2 l .2,-2.5 -.7,-1.2 -2.6,-2.3 -4.5,-1.9 -2.8,-.2 -3.3,-2.7 -1.2,-.6 z m -15.3,-17 -1.1,1.5 -.1,1.7 2.7,2.4 1.9,.5 .6,1 .4,3 3.6,.2 5.3,-2.6 -.1,-2.5 -1.4,-.5 -3.5,-2.6 -1.8,-.3 -2.9,1.3 -1.5,-2.7 z m -1.5,11.5 .9,-1.4 2.5,-.3 .6,1.8 z m -7,-8.7 1.7,4 3.1,-.6 .3,-2 -1.4,-1.5 z m -4.1,-6.7 -1.1,2.4 h 5 l 4.8,1.6 2.5,-1.6 .2,-1.5 -4.8,.2 z m -16,-10.6 -1.9,2.1 -2.9,.6 .8,2.2 2.2,2.8 .1,1 2.1,-.3 2.3,.1 1.7,1.2 3.5,-.8 v -.7 l -1,-.8 -.5,-2.1 -.8,-.3 -.5,1 -1.2,-1.3 .2,-1.4 -1.8,-3.3 -1.1,-.7 z m -31.8,-12.4 -4.2,2.9 .2,2.3 2.4,1.2 1.9,1.3 2.7,.4 2.6,-2.2 -.2,-1.9 .8,-1.7 v -1.4 l -1,-.9 z m -10.8,4.8 -.3,1.2 -1.9,.9 -.6,1.8 1,.8 1.1,-1.5 1.9,-.6 .4,-2.6 z","ID":"m 165.3,183.1 -24.4,-5.4 8.5,-37.3 2.9,-5.8 .4,-2.1 .8,-.9 -.9,-2 -2.9,-1.2 .2,-4.2 4,-5.8 2.5,-.8 1.6,-2.3 -.1,-1.6 1.8,-1.6 3.2,-5.5 4.2,-4.8 -.5,-3.2 -3.5,-3.1 -1.6,-3.6 1.1,-4.3 -.7,-4 12.7,-56.1 14.2,3 -4.8,22 3.7,7.4 -1.6,4.8 3.6,4.8 1.9,.7 3.9,8.3 v 2.1 l 2.3,3 h .9 l 1.4,2.1 h 3.2 v 1.6 l -7.1,17 -.5,4.1 1.4,.5 1.6,2.6 2.8,-1.4 3.6,-2.4 1.9,1.9 .5,2.5 -.5,3.2 2.5,9.7 2.6,3.5 2.3,1.4 .4,3 v 4.1 l 2.3,2.3 1.6,-2.3 6.9,1.6 2.1,-1.2 9,1.7 2.8,-3.3 1.8,-.6 1.2,1.8 1.6,4.1 .9,.1 -8.5,54.8 -47.9,-8.2 z","IL":"m 623.5,265.9 -1,5.2 v 2 l 2.4,3.5 v .7 l -.3,.9 .9,1.9 -.3,2.4 -1.6,1.8 -1.3,4.2 -3.8,5.3 -.1,7 h -1 l .9,1.9 v .9 l -2.2,2.7 .1,1.1 1.5,2.2 -.1,.9 -3.7,.6 -.6,1.2 -1.2,-.6 -1,.5 -.4,3.3 1.7,1.8 -.4,2.4 -1.5,.3 -6.9,-3 -4,3.7 .3,1.8 h -2.8 l -1.4,-1.5 -1.8,-3.8 v -1.9 l .8,-.6 .1,-1.3 -1.7,-1.9 -.9,-2.5 -2.7,-4.1 -4.8,-1.3 -7.4,-7.1 -.4,-2.4 2.8,-7.6 -.4,-1.9 1.2,-1.1 v -1.3 l -2.8,-1.5 -3,-.7 -3.4,1.2 -1.3,-2.3 .6,-1.9 -.7,-2.4 -8.6,-8.4 -2.2,-1.5 -2.5,-5.9 -1.2,-5.4 1.4,-3.7 .7,-.7 .1,-2.3 -.7,-.9 1,-1.5 1.8,-.6 .9,-.3 1,-1.2 v -2.4 l 1.7,-2.4 .5,-.5 .1,-3.5 -.9,-1.4 -1,-.3 -1.1,-1.6 1,-4 3,-.8 h 2.4 l 4.2,-1.8 1.7,-2.2 .1,-2.4 1.1,-1.3 1.3,-3.2 -.1,-2.6 -2.8,-3.5 h -1.2 l -.9,-1.1 .2,-1.6 -1.7,-1.7 -2.5,-1.3 .5,-.6 45.9,-2.8 .1,4.6 3.4,4.6 1.2,4.1 1.6,3.2 z","IN":"m 629.2,214.8 -5.1,2.3 -4.7,-1.4 4.1,50.2 -1,5.2 v 2 l 2.4,3.5 v .7 l -.3,.9 .9,1.9 -.3,2.4 -1.6,1.8 -1.3,4.2 -3.8,5.3 -.1,7 h -1 l .9,1.9 1.1,.8 .6,-1 -.7,-1.7 4.6,-.5 .2,1.2 1.1,.2 .4,-.9 -.6,-1.3 .3,-.8 1.3,.8 1.7,-.4 1.7,.6 3.4,2.1 1.8,-2.8 3.5,-2.2 3,3.3 1.6,-2.1 .3,-2.7 3.8,-2.3 .2,1.3 1.9,1.2 3,-.2 1.2,-.7 .1,-3.4 2.5,-3.7 4.6,-4.4 -.1,-1.7 1.2,-3.8 2.2,1 6.7,-4.5 -.4,-1.7 -1.5,-2.1 1,-1.9 -6.6,-57.2 -.1,-1.4 -32.4,3.4 z","IA":"m 556.9,183 2.1,1.6 .6,1.1 -1.6,3.3 -.1,2.5 2,5.5 2.7,1.5 3.3,.7 1.3,2.8 -.5,.6 2.5,1.3 1.7,1.7 -.2,1.6 .9,1.1 h 1.2 l 2.8,3.5 .1,2.6 -1.3,3.2 -1.1,1.3 -.1,2.4 -1.7,2.2 -4.2,1.8 h -2.4 l -3,.8 -1,4 1.1,1.6 1,.3 .9,1.4 -.1,3.5 -.5,.5 -1.7,2.4 v 2.4 l -1,1.2 -.9,.3 -1.8,.6 -1,1.5 .7,.9 -.1,2.3 -.7,.7 -1.5,-.8 -1.1,-1.1 -.6,-1.6 -1.7,-1.3 -14.3,.8 -27.2,1.2 -25.9,-.1 -1.8,-4.4 .7,-2.2 -.8,-3.3 .2,-2.9 -1.3,-.7 -.4,-6.1 -2.8,-5 -.2,-3.7 -2.2,-4.3 -1.3,-3.7 v -1.4 l -.6,-1.7 v -2.3 l -.5,-.9 -.7,-1.7 -.3,-1.3 -1.3,-1.2 1,-4.3 1.7,-5.1 -.7,-2 -1.3,-.4 -.4,-1.6 1,-.5 .1,-1.1 -1.3,-1.5 .1,-1.6 2.2,.1 h 28.2 l 36.3,-.9 18.6,-.7 z","KS":"m 459.1,259.5 -43.7,-1.2 -36,-2 -4.8,67 67.7,2.9 62,.1 -.5,-48.1 -3.2,-.7 -2.6,-4.7 -2.5,-2.5 .5,-2.3 2.7,-2.6 .1,-1.2 -1.5,-2.1 -.9,1 -2,-.6 -2.9,-3 z","KY":"m 692.1,322.5 -20.5,1.4 -5.2,.8 -17.4,1 -2.6,.8 -22.6,2 -.7,-.6 h -3.7 l 1.2,3.2 -.6,.9 -23.3,1.5 1,-2.7 1.4,.9 .7,-.4 1.2,-4.1 -1,-1 1,-2 .2,-.9 -1.3,-.8 -.3,-1.8 4,-3.7 6.9,3 1.5,-.3 .4,-2.4 -1.7,-1.8 .4,-3.3 1,-.5 1.2,.6 .6,-1.2 3.7,-.6 .1,-.9 -1.5,-2.2 -.1,-1.1 2.2,-2.7 0,-.9 1.1,.8 .6,-1 -.7,-1.7 4.6,-.5 .2,1.2 1.1,.2 .4,-.9 -.6,-1.3 .3,-.8 1.3,.8 1.7,-.4 1.7,.6 3.4,2.1 1.8,-2.8 3.5,-2.2 3,3.3 1.6,-2.1 .3,-2.7 3.8,-2.3 .2,1.3 1.9,1.2 3,-.2 1.2,-.7 .1,-3.4 2.5,-3.7 4.6,-4.4 -.1,-1.7 1.2,-3.8 2.2,1 6.7,-4.5 -.4,-1.7 -1.5,-2.1 1,-1.9 1.3,.5 2.2,.1 1.9,-.8 2.9,1.2 2.2,3.4 v 1 l 4.1,.7 2.3,-.2 1.9,2.1 2.2,.2 v -1 l 1.9,-.8 3,.8 1.2,.8 1.3,-.7 h .9 l .6,-1.7 3.4,-1.8 .5,.8 .8,2.9 3.5,1.4 1.2,2.1 -.1,1.1 .6,1 -.6,3.6 1.9,1.6 .8,1.1 1,.6 -.1,.9 4.4,5.6 h 1.4 l 1.5,1.8 1.2,.3 1.4,-.1 -4.9,6.6 -2.9,1 -3,3 -.4,2.2 -2.1,1.3 -.1,1.7 -1.4,1.4 -1.8,.5 -.5,1.9 -1,.4 -6.9,4.2 z m -98,11.3 -.7,-.7 .2,-1 h 1.1 l .7,.7 -.3,1 z","LA":"m 602.5,472.8 -1.2,-1.8 .3,-1.3 -4.8,-6.8 .9,-4.6 1,-1.4 .1,-1.4 -36,2 1.7,-11.9 2.4,-4.8 6,-8.4 -1.8,-2.5 h 2 v -3.3 l -2.4,-2.5 .5,-1.7 -1.2,-1 -1.6,-7.1 .6,-1.4 -52.3,1.3 .5,19.9 .7,3.4 2.6,2.8 .7,5.4 3.8,4.6 .8,4.3 h 1 l -.1,7.3 -3.3,6.4 1.3,2.3 -1.3,1.5 .7,3 -.1,4.3 -2.2,3.5 -.1,.8 -1.7,1.2 1,1.8 1.2,1.1 1.6,-1.3 5.3,-.9 6.1,-.1 9.6,3.8 8,1 1.5,-1.4 1.8,-.2 4.8,2.2 1.6,-.4 1.1,-1.5 -4.2,-1.8 -2.2,1 -1.1,-.2 -1.4,-2 3.3,-2.2 1.6,-.1 v 1.7 l 1.5,-.1 3.4,-.3 .4,2.3 1.1,.4 .6,1.9 4.8,1 1.7,1.6 v .7 h -1.2 l -1.5,1.7 1.7,1.2 5.4,1 2.7,2.8 4.4,-1 -3.7,.2 -.1,-.6 2.8,-.7 .2,-1.8 1.2,-.3 v -1.4 l 1.1,.1 v 1.6 l 2.5,.1 .8,-1.9 .9,.3 .2,2.5 1.2,.2 -1.8,2 2.6,-.9 2,-1.1 2.9,-3.3 h -.7 l -1.3,1.2 -.4,-.1 -.5,-.8 .9,-1.2 v -2.3 l 1.1,-.8 .7,.7 1,-.8 1,-.1 .6,1.3 -.6,1.9 h 2.4 l 5.1,1.7 .5,1.3 1.6,1.4 2.8,.1 1.3,.7 1.8,-1 .9,-1.7 v -1.7 h -1.4 l -1.2,-1.4 -1.1,-1.1 -3.2,-.9 -2.6,.2 -4.2,-2.4 v -2.3 l 1.3,-1 2.4,.6 -3.1,-1.6 .2,-.8 h 3.6 l 2.6,-3.5 -2.6,-1.8 .8,-1.5 -1.2,-.8 h -.8 l -2,2.1 v 2.1 l -.6,.7 -1.1,-.1 -1.6,-1.4 h -1.3 v -1.5 l .6,-.7 .8,.7 1.7,-1.6 .7,-1.6 .8,-.3 z m -10.3,-2.7 1.9,1 .8,1.1 2.5,.1 1.5,.8 .2,1.4 -.4,.6 -.9,-1.5 -1.4,1.2 -.9,1.4 -2.8,.8 -1.6,.1 -3.7,-1 .1,-1.7 2,-2 1.1,-2.4 z m -4.7,1.2 v 1.1 l -1.8,2 h -1.2 v -2.2 l 1.6,-1.5 z","ME":"m 875,128.7 .6,4 3.2,2 .8,2.2 2.3,1.4 1.4,-.3 1,-3 -.8,-2.9 1.6,-.9 .5,-2.8 -.6,-1.3 3.3,-1.9 -2.2,-2.3 .9,-2.4 1.4,-2.2 .5,3.2 1.6,-2 1.3,.9 1.2,-.8 v -1.7 l 3.2,-1.3 .3,-2.9 2.5,-.2 2.7,-3.7 v -.7 l -.9,-.5 -.1,-3.3 .6,-1.1 .2,1.6 1,-.5 -.2,-3.2 -.9,.3 -.1,1.2 -1.2,-1.4 .9,-1.4 .6,.1 1.1,-.4 .5,2.8 2,-.3 2.9,.7 v -1 l -1.1,-1.2 1.3,.1 .1,-2.3 .6,.8 .3,1.9 2.1,1.5 .2,-1 .9,-.2 -.3,-.8 .8,-.6 -.1,-1.6 -1.6,-.2 -2,.7 1.4,-1.6 .7,-.8 1.3,-.2 .4,1.3 1.7,1.6 .4,-2.1 2.3,-1.2 -.9,-1.3 .1,-1.7 1.1,.5 h .7 l 1.7,-1.4 .4,-2.3 2.2,.3 .1,-.7 .2,-1.6 .5,1.4 1.5,-1 2.3,-4.1 -.1,-2.2 -1.4,-2 -3,-3.2 h -1.9 l -.8,2.2 -2.9,-3 .3,-.8 v -1.5 l -1.6,-4.5 -.8,-.2 -.7,.4 h -4.8 l -.3,-3.6 -8.1,-26 -7.3,-3.7 -2.9,-.1 -6.7,6.6 -2.7,-1 -1,-3.9 h -2.7 l -6.9,19.5 .7,6.2 -1.7,2.4 -.4,4.6 1.3,3.7 .8,.2 v 1.6 l -1.6,4.5 -1.5,1.4 -1.3,2.2 -.4,7.8 -2.4,-1 -1.5,.4 z m 34.6,-24.7 -1,.8 v 1.3 l .7,-.8 .9,.8 .4,-.5 1.1,.2 -1,-.8 .4,-.8 z m -1.7,2.6 -1,1.1 .5,.4 -.1,1 h 1.1 v -1.8 z m -3,-1.6 .9,1.3 1,.5 .3,-1 v -1.8 l -1.3,-.7 -.4,1.2 z m -1,5 -1.7,-1.7 1.6,-2.4 .8,.3 .2,1.1 1,.8 v 1.1 l -1,1 z","MD":"m 822.9,269.3 0,-1.7 h -.8 l 0,1.8 z m 11.8,-3.9 1.2,-2.2 .1,-2.5 -.6,-.6 -.7,.9 -.2,2.1 -.8,1.4 -.3,1.1 -4.6,1.6 -.7,.8 -1.3,.2 -.4,.9 -1.3,.6 -.3,-2.5 .4,-.7 -.8,-.5 .2,-1.5 -1.6,1 v -2 l 1.2,-.3 -1.9,-.4 -.7,-.8 .4,-1.3 -.8,-.6 -.7,1.6 .5,.8 -.7,.6 -1.1,.5 -2,-1 -.2,-1.2 -1,-1.1 -1.4,-1.7 1.5,-.8 -1,-.6 v -.9 l .6,-1 1.7,-.3 -1.4,-.6 -.1,-.7 -1.3,-.1 -.4,1.1 -.6,.3 .1,-3.4 1,-1 .8,.7 .1,-1.6 -1,-.9 -.9,1.1 -1,1.4 -.6,-1 .2,-2.4 .9,-1 .9,.9 1.2,-.7 -.4,-1.7 -1,1 -.9,-2.1 -.2,-1.7 1.1,-2.4 1.1,-1.4 1.4,-.2 -.5,-.8 .5,-.6 -.3,-.7 .2,-2.1 -1.5,.4 -.8,1.1 1,1.3 -2.6,3.6 -.9,-.4 -.7,.9 -.6,2.2 -1.8,.5 1.3,.6 1.3,1.3 -.2,.7 .9,1.2 -1.1,1 .5,.3 -.5,1.3 v 2.1 l -.5,1.3 .9,1.1 .7,3.4 1.3,1.4 1.6,1.4 .4,2.8 1.6,2 .4,1.4 v 1 h -.7 l -1.5,-1.2 -.4,.2 -1.2,-.2 -1.7,-1.4 -1.4,-.3 -1,.5 -1.2,-.3 -.4,.2 -1.7,-.8 -1,-1 -1,-1.3 -.6,-.2 -.8,.7 -1.6,1.3 -1.1,-.8 -.4,-2.3 .8,-2.1 -.3,-.5 .3,-.4 -.7,-1 1,-.1 1,-.9 .4,-1.8 1.7,-2.6 -2.6,-1.8 -1,1.7 -.6,-.6 h -1 l -.6,-.1 -.4,-.4 .1,-.5 -1.7,-.6 -.8,.3 -1.2,-.1 -.7,-.7 -.5,-.2 -.2,-.7 .6,-.8 v -.9 l -1.2,-.2 -1,-.9 -.9,.1 -1.6,-.3 -.9,-.4 .2,-1.6 -1,-.5 -.2,-.7 h -.7 l -.8,-1.2 .2,-1 -2.6,.4 -2.2,-1.6 -1.4,.3 -.9,1.4 h -1.3 l -1.7,2.9 -3.3,.4 -1.9,-1 -2.6,3.8 -2.2,-.3 -3.1,3.9 -.9,1.6 -1.8,1.6 -1.7,-11.4 60.5,-11.8 7.6,27.1 10.9,-2.3 0,5.3 -.1,3.1 -1,1.8 z m -13.4,-1.8 -1.3,.9 .8,1.8 1.7,.8 -.4,-1.6 z","MA":"m 899.9,174.2 h 3.4 l .9,-.6 .1,-1.3 -1.9,-1.8 .4,1 -1.5,1.5 h -2.3 l .1,.8 z m -9,1.8 -1.2,-.6 1,-.8 .6,-2.1 1.2,-1 .8,-.2 .6,.9 1.1,.2 .6,-.6 .5,1.9 -1.3,.3 -2.8,.7 z m -34.9,-23.4 18.4,-3.8 1,-1.5 .3,-1.7 1.9,-.6 .5,-1.1 1.7,-1.1 1.3,.3 1.7,3.3 1,.4 1.1,-1.3 .8,1.3 v 1.1 l -3,2.4 .2,.8 -.9,1 .4,.8 -1.3,.3 .9,1.2 -.8,.7 .6,1 .9,-.2 .3,-.8 1.1,.6 h 1.8 l 2.5,2.6 .2,2.6 1.8,.1 .8,1.1 .6,2 1,.7 h 1.9 l 1.9,-.1 .8,-.9 1.6,-1.2 1.1,-.3 -1.2,-2.1 -.3,.9 -1.5,-3.6 h -.8 l -.4,.9 -1.2,-1 1.3,-1.1 1.8,.4 2.3,2.1 1.3,2.7 1.2,3.3 -1,2.8 v -1.8 l -.7,-1 -3.5,2.3 -.9,-.3 -1.6,1 -.1,1.2 -2.2,1.2 -2,2.1 -2,1.9 h -1.2 l 3.3,-3.3 .5,-1.9 -.5,-.6 -.3,-1.3 -.9,-.1 -.1,1.3 -1,1.2 h -1.2 l -.3,1.1 .4,1.2 -1.2,1.1 -1.1,-.2 -.4,1 -1.4,-3 -1.3,-1.1 -2.6,-1.3 -.6,-2.2 h -.8 l -.7,-2.6 -6.5,2 -.1,-.3 -14.9,3.4 v .7 l -.9,.3 -.5,-.7 -10.5,2.4 -.7,-1 .5,-15 z","MI":"m 663.3,209.8 .1,1.4 21.4,-3.5 .5,-1.2 3.9,-5.9 v -4.3 l .8,-2.1 2.2,-.8 2,-7.8 1,-.5 1,.6 -.2,.6 -1.1,.8 .3,.9 .8,.4 1.9,-1.4 .4,-9.8 -1.6,-2.3 -1.2,-3.7 v -2.5 l -2.3,-4.4 v -1.8 l -1.2,-3.3 -2.3,-3 -2.9,-1 -4.8,3 -2.5,4.6 -.2,.9 -3,3.5 -1.5,-.2 -2.9,-2.8 -.1,-3.4 1.5,-1.9 2,-.2 1.2,-1.7 .2,-4 .8,-.8 1.1,-.1 .9,-1.7 -.2,-9.6 -.3,-1.3 -1.2,-1.2 -1.7,-1 -.1,-1.8 .7,-.6 1.8,.8 -.3,-1.7 -1.9,-2.7 -.7,-1.6 -1.1,-1.1 h -2.2 l -8.1,-2.9 -1.4,-1.7 -3.1,-.3 -1.2,.3 -4.4,-2.3 h -1.4 l .5,1 -2.7,-.1 .1,.6 .6,.6 -2.5,2.1 .1,1.8 1.5,2.3 1.5,.2 v .6 l -1.5,.5 -2.1,-.1 -2.8,2.5 .1,2.5 .4,5.8 -2.2,3.4 .8,-4.5 -.8,-.6 -.9,5.3 -1,-2.3 .5,-2.3 -.5,-1 .6,-1.3 -.6,-1.1 1,-1 v -1.2 l -1.3,.6 -1.3,3.1 -.7,.7 -1.3,2.4 -1.7,-.2 -.1,1.2 h -1.6 l .2,1.5 .2,2 -3,1.2 .1,1.3 1,1.7 -.1,5.2 -1.3,4.4 -1.7,2.5 1.2,1.4 .8,3.5 -1,2.5 -.2,2.1 1.7,3.4 2.5,4.9 1.2,1.9 1.6,6.9 -.1,8.8 -.9,3.9 -2,3.2 -.9,3.7 -2,3 -1.2,1 z m -95.8,-96.8 3,3.8 17,3.8 1.4,1 4,.8 .7,.5 2.8,-.2 4.9,.8 1.4,1.5 -1,1 .8,.8 3.8,.7 1.2,1.2 .1,4.4 -1.3,2.8 2,.1 1,-.8 .9,.8 -1.1,3.1 1,1.6 1.2,.3 .8,-1.8 2.9,-4.6 1.6,-6 2.3,-2 -.5,-1.6 .5,-.9 1,1.6 -.3,2.2 2.9,-2.2 .2,-2.3 2.1,.6 .8,-1.6 .7,.6 -.7,1.5 -1,.5 -1,2 1.4,1.8 1.1,-.5 -.5,-.7 1,-1.5 1.9,-1.7 h .8 l .2,-2.6 2,-1.8 7.9,-.5 1.9,-3.1 3.8,-.3 3.8,1.2 4.2,2.7 .7,-.2 -.2,-3.5 .7,-.2 4.5,1.1 1.5,-.2 2.9,-.7 1.7,.4 1.8,.1 v -1.1 l -.7,-.9 -1.5,-.2 -1.1,-.8 .5,-1.4 -.8,-.3 -2.6,.1 -.1,-1 1.1,-.8 .6,.8 .5,-1.8 -.7,-.7 .7,-.2 -1.4,-1.3 .3,-1.3 .1,-1.9 h -1.3 l -1.5,1 -1.9,.1 -.5,1.8 -1.9,.2 -.3,-1.2 -2.2,.1 -1,1.2 -.7,-.1 -.2,-.8 -2.6,.4 -.1,-4.8 1,-2 -.7,-.1 -1.8,1.1 h -2.2 l -3.8,2.7 -6.2,.3 -4.1,.8 -1.9,1.5 -1.4,1.3 -2.5,1.7 -.3,.8 -.6,-1.7 -1.3,-.6 v .6 l .7,.7 v 1.3 l -1.5,-.6 h -.6 l -.3,1.2 -2,-1.9 -1.3,-.2 -1.3,1.5 -3.2,-.1 -.5,-1.4 -2,-1.9 -1.3,-1.6 v -.7 l -1.1,-1.4 -2.6,-1.2 -3.3,-.1 -1.1,-.9 h -1.4 l -.7,.4 -2.2,2.2 -.7,1.1 -1,-.7 .2,-1 .8,-2.1 3.2,-5 .8,-.2 1.7,-1.9 .7,-1.6 3,-.6 .8,-.6 -.1,-1 -.5,-.5 -4.5,.2 -2,.5 -2.6,1.2 -1.2,1.2 -1.7,2.2 -1.8,1 -3.3,3.4 -.4,1.6 -7.4,4.6 -4,.5 -1.8,.4 -2.3,3 -1.8,.7 -4.4,2.3 z m 100.7,3.8 3.8,.1 .6,-.5 -.2,-2 -1.7,-1.8 -1.9,.1 -.1,.5 1.1,.4 -1.6,.8 -.3,1 -.6,-.6 -.4,.8 z m -75.1,-41.9 -2.3,.2 -2.7,1.9 -7.1,5.3 .8,1 1.8,.3 2.8,-2 -1.1,-.5 2.3,-1.6 h 1 l 3,-1.9 -.1,-.9 z m 41.1,62.8 v 1 l 2.1,1.6 -.2,-2.4 z m -.7,2.8 1.1,.1 v .9 h -1 z m 21.4,-21.3 v .9 l .8,-.2 v -.5 z m 4.7,3.1 -.1,-1.1 -1.6,-.2 -.6,-.4 h -.9 l -.4,.3 .9,.4 1.1,1.1 z m -18,1.2 -.1,1.1 -.3,.7 .2,2.2 .4,.3 .7,.1 .5,-.9 .1,-1.6 -.3,-.6 -.1,-1.1 z","MN":"m 464.7,68.6 -1.1,2.8 .8,1.4 -.3,5.1 -.5,1.1 2.7,9.1 1.3,2.5 .7,14 1,2.7 -.4,5.8 2.9,7.4 .3,5.8 -.1,2.1 -.1,2.2 -.9,2 -3.1,1.9 -.3,1.2 1.7,2.5 .4,1.8 2.6,.6 1.5,1.9 -.2,39.5 h 28.2 l 36.3,-.9 18.6,-.7 -1.1,-4.5 -.2,-3 -2.2,-3 -2.8,-.7 -5.2,-3.6 -.6,-3.3 -6.3,-3.1 -.2,-1.3 h -3.3 l -2.2,-2.6 -2,-1.3 .7,-5.1 -.9,-1.6 .5,-5.4 1,-1.8 -.3,-2.7 -1.2,-1.3 -1.8,-.3 v -1.7 l 2.8,-5.8 5.9,-3.9 -.4,-13 .9,.4 .6,-.5 .1,-1.1 .9,-.6 1.4,1.2 .7,-.1 v 0 l -1.2,-2.2 4.3,-3.1 3.1,-3.7 1.6,-.8 4.7,-5.9 6.3,-5.8 3.9,-2.1 6.3,-2.7 7.6,-4.5 -.6,-.4 -3.7,.7 -2.8,.1 -1,-1.6 -1.4,-.9 -9.8,1.2 -1,-2.8 -1.6,-.1 -1.7,.8 -3.7,3.1 h -4.1 l -2.1,-1 -.3,-1.7 -3.9,-.8 -.6,-1.6 -.7,-1.3 -1,.9 -2.6,.1 -9.9,-5.5 h -2.9 l -.8,-.7 -3.1,1.3 -.8,1.3 -3.3,.8 -1.3,-.2 v -1.7 l -.7,-.9 h -5.9 l -.4,-1.4 h -2.6 l -1.1,.4 -2.4,-1.7 .3,-1.4 -.6,-2.4 -.7,-1.1 -.2,-3 -1,-3.1 -2.1,-1.6 h -2.9 l .1,8 -30.9,-.4 z","MS":"m 623.8,468.6 -5,.1 -2.4,-1.5 -7.9,2.5 -.9,-.7 -.5,.2 -.1,1.6 -.6,.1 -2.6,2.7 -.7,-.1 -.6,-.7 -1.2,-1.8 .3,-1.3 -4.8,-6.8 .9,-4.6 1,-1.4 .1,-1.4 -36,2 1.7,-11.9 2.4,-4.8 6,-8.4 -1.8,-2.5 h 2 v -3.3 l -2.4,-2.5 .5,-1.7 -1.2,-1 -1.6,-7.1 .6,-1.4 1.2,-1.5 .5,-3 -1.5,-2.3 -.5,-2.2 .9,-.7 v -.8 l -1.7,-1.1 -.1,-.7 1.6,-.9 -1.2,-1.1 1.7,-7.1 3.4,-1.6 v -.8 l -1.1,-1.4 2.9,-5.4 h 1.9 l 1.5,-1.2 -.3,-5.2 3.1,-4.5 1.8,-.6 -.5,-3.1 38.3,-2.6 1.3,2 -1.3,67 4.4,33.2 z","MO":"m 555.3,248.9 -1.1,-1.1 -.6,-1.6 -1.7,-1.3 -14.3,.8 -27.2,1.2 -25.9,-.1 1.3,1.3 -.3,1.4 2.1,3.7 3.9,6.3 2.9,3 2,.6 .9,-1 1.5,2.1 -.1,1.2 -2.7,2.6 -.5,2.3 2.5,2.5 2.6,4.7 3.2,.7 .5,48.1 .2,10.8 39.1,-.7 39.8,-2 1.6,2.5 v 2.2 l -1.7,1.5 -2.8,5.1 11.2,-.8 1,-2 1.2,-.5 v -.7 l -1.2,-1.1 -.6,-1 1.7,.2 .8,-.7 -1.4,-1.5 1.4,-.5 .1,-1 -.6,-1 v -1.3 l -.7,-.7 .2,-1 h 1.1 l .7,.7 -.3,1 .8,.7 .8,-1 1,-2.7 1.4,.9 .7,-.4 1.2,-4.1 -1,-1 1,-2 .2,-.9 -1.3,-.8 h -2.8 l -1.4,-1.5 -1.8,-3.8 v -1.9 l .8,-.6 .1,-1.3 -1.7,-1.9 -.9,-2.5 -2.7,-4.1 -4.8,-1.3 -7.4,-7.1 -.4,-2.4 2.8,-7.6 -.4,-1.9 1.2,-1.1 v -1.3 l -2.8,-1.5 -3,-.7 -3.4,1.2 -1.3,-2.3 .6,-1.9 -.7,-2.4 -8.6,-8.4 -2.2,-1.5 -2.5,-5.9 -1.2,-5.4 1.4,-3.7 z","MT":"m 247,130.5 57.3,7.9 51,5.3 2,-20.7 5.2,-66.7 -53.5,-5.6 -54.3,-7.7 -65.9,-12.5 -4.8,22 3.7,7.4 -1.6,4.8 3.6,4.8 1.9,.7 3.9,8.3 v 2.1 l 2.3,3 h .9 l 1.4,2.1 h 3.2 v 1.6 l -7.1,17 -.5,4.1 1.4,.5 1.6,2.6 2.8,-1.4 3.6,-2.4 1.9,1.9 .5,2.5 -.5,3.2 2.5,9.7 2.6,3.5 2.3,1.4 .4,3 v 4.1 l 2.3,2.3 1.6,-2.3 6.9,1.6 2.1,-1.2 9,1.7 2.8,-3.3 1.8,-.6 1.2,1.8 1.6,4.1 .9,.1 z","NE":"m 402.5,191.1 38,1.6 3.4,3.2 1.7,.2 2.1,2 1.8,-.1 1.8,-2 1.5,.6 1,-.7 .7,.5 .9,-.4 .7,.4 .9,-.4 1,.5 1.4,-.6 2,.6 .6,1.1 6.1,2.2 1.2,1.3 .9,2.6 1.8,.7 1.5,-.2 .5,.9 v 2.3 l .6,1.7 v 1.4 l 1.3,3.7 2.2,4.3 .2,3.7 2.8,5 .4,6.1 1.3,.7 -.2,2.9 .8,3.3 -.7,2.2 1.8,4.4 1.3,1.3 -.3,1.4 2.1,3.7 3.9,6.3 h -32.4 l -43.7,-1.2 -36,-2 1.4,-22.1 -33.1,-2.4 3.7,-44.2 z","NV":"m 167.6,296.8 -3.4,17.5 -2.4,2.9 h -2 l -1.2,-2.7 -3.7,-1.4 -3.5,.6 -1,13.6 .5,4.9 -.5,2.9 -1.4,3 -70.4,-105 -1.1,-3.5 16.4,-63.1 47,11.2 24.4,5.4 23.3,4.7 z","NH":"m 862.6,93.6 -1.3,.1 -1,-1.1 -1.9,1.4 -.5,6.1 1.2,2.3 -1.1,3.5 2.1,2.8 -.4,1.7 .1,1.3 -1.1,2.1 -1.4,.4 -.6,1.3 -2.1,1 -.7,1.5 1.4,3.4 -.5,2.5 .5,1.5 -1,1.9 .4,1.9 -1.3,1.9 .2,2.2 -.7,1.1 .7,4.5 .7,1.5 -.5,2.6 .9,1.8 -.2,2.5 -.5,1.3 -.1,1.4 2.1,2.6 18.4,-3.8 1,-1.5 .3,-1.7 1.9,-.6 .5,-1.1 1.7,-1.1 1.3,.3 .8,-4.8 -2.3,-1.4 -.8,-2.2 -3.2,-2 -.6,-4 -11.9,-36.8 z","NJ":"m 842.5,195.4 -14.6,-4.9 -1.8,2.5 .1,2.2 -3,5.4 1.5,1.8 -.7,2 -1,1 .5,3.6 2.7,.9 1,2.8 2.1,1.1 4.2,3.2 -3.3,2.6 -1.6,2.3 -1.8,3 -1.6,.6 -1.4,1.7 -1,2.2 -.3,2.1 .8,.9 .4,2.3 1.2,.6 2.4,1.5 1.8,.8 1.6,.8 .1,1.1 .8,.1 1.1,-1.2 .8,.4 2.1,.2 -.2,2.9 .2,2.5 1.8,-.7 1.5,-3.9 1.6,-4.8 2.9,-2.8 .6,-3.5 -.6,-1.2 1.7,-2.9 v -1.2 l -.7,-1.1 1.2,-2.7 -.3,-3.6 -.6,-8.2 -1.2,-1.4 v 1.4 l .5,.6 h -1.1 l -.6,-.4 -1.3,-.2 -.9,.6 -1.2,-1.6 .7,-1.7 v -1 l 1.7,-.7 .8,-2.1 z","NM":"m 357.5,332.9 h -.8 l -7.9,99.3 -31.8,-2.6 -34.4,-3.6 -.3,3 2,2.2 -30.8,-4.1 -1.4,10.2 -15.7,-2.2 17.4,-124.1 52.6,6.5 51.7,4.8 z","NY":"m 872.9,181.6 -1.3,.1 -.5,1 z m -30.6,22.7 .7,.6 1.3,-.3 1.1,.3 .9,-1.3 h 1.9 l 2.4,-.9 5.1,-2.1 -.5,-.5 -1.9,.8 -2,.9 .2,-.8 2.6,-1.1 .8,-1 1.2,.1 4.1,-2.3 v .7 l -4.2,3 4.5,-2.8 1.7,-2.2 1.5,-.1 4.5,-3.1 3.2,-3.1 3,-2.3 1,-1.2 -1.7,-.1 -1,1.2 -.2,.7 -.9,.7 -.8,-1.1 -1.7,1 -.1,.9 -.9,-.2 .5,-.9 -1.2,-.7 -.6,.9 .9,.3 .2,.5 -.3,.5 -1.4,2.6 h -1.9 l .9,-1.8 .9,-.6 .3,-1.7 1.4,-1.6 .9,-.8 1.5,-.7 -1.2,-.2 -.7,.9 h -.7 l -1.1,.8 -.2,1 -2.2,2.1 -.4,.9 -1.4,.9 -7.7,1.9 .2,.9 -.9,.7 -2,.3 -1,-.6 -.2,1.1 -1.1,-.4 .1,1 -1.2,-.1 -1.2,.5 -.2,1.1 h -1 l .2,1 h -.7 l .2,1 -1.8,.4 -1.5,2.3 z m -.8,-.4 -1.6,.4 v 1 l -.7,1.6 .6,.7 2.4,-2.3 -.1,-.9 z m -10.1,-95.2 -.6,1.9 1.4,.9 -.4,1.5 .5,3.2 2.2,2.3 -.4,2.2 .6,2 -.4,1 -.3,3.8 3.1,6.7 -.8,1.8 .9,2.2 .9,-1.6 1.9,1.5 3,14.2 -.5,2 1.1,1 -.5,15 .7,1 2.8,16.3 1.8,1.5 -3.5,3.4 1.7,2.2 -1.3,3.3 -1.5,1.7 -1.5,2.3 -.2,-.7 .4,-5.9 -14.6,-4.9 -1.6,-1.1 -1.9,.3 -3,-2.2 -3,-5.8 h -2 l -.4,-1.5 -1.7,-1.1 -70.5,13.9 -.8,-6 4.3,-3.9 .6,-1.7 3.9,-2.5 .6,-2.4 2.3,-2 .8,-1.1 -1.7,-3.3 -1.7,-.5 -1.8,-3 -.2,-3.2 7.6,-3.9 8.2,-1.6 h 4.4 l 3.2,1.6 .9,-.1 1.8,-1.6 3.4,-.7 h 3 l 2.6,-1.3 2.5,-2.6 2.4,-3.1 1.9,-.4 1.1,-.5 .4,-3.2 -1.4,-2.7 -1.2,-.7 2,-1.3 -.1,-1.8 h -1.5 l -2.3,-1.4 -.1,-3.1 6.2,-6.1 .7,-2.4 3.7,-6.3 5.9,-6.4 2.1,-1.7 2.5,.1 20.6,-5.2 z","NC":"m 829,300.1 -29.1,6.1 -39.4,7.3 -29.4,3.5 v 5.2 l -1.5,-.1 -1.4,1.2 -2.4,5.2 -2.6,-1.1 -3.5,2.5 -.7,2.1 -1.5,1.2 -.8,-.8 -.1,-1.5 -.8,-.2 -4,3.3 -.6,3.4 -4.7,2.4 -.5,1.2 -3.2,2.6 -3.6,.5 -4.6,3 -.8,4.1 -1.3,.9 -1.5,-.1 -1.4,1.3 -.1,4.9 21.4,-3 4.4,-1.9 1.3,-.1 7.3,-4.3 23.2,-2.2 .4,.5 -.2,1.4 .7,.3 1.2,-1.5 3.3,3 .1,2.6 19.7,-2.8 24.5,17.1 4,-2.2 3,-.7 h 1.7 l 1.1,1.1 .8,-2 .6,-5 1.7,-3.9 5.4,-6.1 4.1,-3.5 5.4,-2.3 2.5,-.4 1.3,.4 .7,1.1 3.3,-6.6 3.3,-5.3 -.7,-.3 -4.4,6.8 -.5,-.8 2,-2.2 -.4,-1.5 -2,-.5 1,1.3 -1.2,.1 -1.2,-1.8 -1.2,2 -1.6,.2 1,-2.7 .7,-1.7 -.2,-2.9 -2.2,-.1 .9,-.9 1.1,.3 2.7,.1 .8,-.5 h 2.3 l 2,-1.9 .2,-3.2 1.3,-1.4 1.2,-.2 1.3,-1 -.5,-3.7 -2.2,-3.8 -2.7,-.2 -.9,1.6 -.5,-1 -2.7,.2 -1.2,.4 -1.9,1.2 -.3,-.4 h -.9 l -1.8,1.2 -2.6,.5 v -1.3 l .8,-1 1,.7 h 1 l 1.7,-2.1 3.7,-1.7 2,-2.2 h 2.4 l .8,1.3 1.7,.8 -.5,-1.5 -.3,-1.6 -2.8,-3.1 -.3,-1.4 -.4,1 -.9,-1.3 z m 7,31 2.7,-2.5 4.6,-3.3 v -3.7 l -.4,-3.1 -1.7,-4.2 1.5,1.4 1,3.2 .4,7.6 -1.7,.4 -3.1,2.4 -3.2,3.2 z m 1.9,-19.3 -.9,-.2 v 1 l 2.5,2.2 -.2,-1.4 z m 2.9,2.1 -1.4,-2.8 -2.2,-3.4 -2.4,-3 -2.2,-4.3 -.8,-.7 2.2,4.3 .3,1.3 3.4,5.5 1.8,2.1 z","ND":"m 464.7,68.6 -1.1,2.8 .8,1.4 -.3,5.1 -.5,1.1 2.7,9.1 1.3,2.5 .7,14 1,2.7 -.4,5.8 2.9,7.4 .3,5.8 -.1,2.1 -29.5,-.4 -46,-2.1 -39.2,-2.9 5.2,-66.7 44.5,3.4 55.3,1.6 z","OH":"m 685.7,208.8 1.9,-.4 3,1.3 2.1,.6 .7,.9 h 1 l 1,-1.5 1.3,.8 h 1.5 l -.1,1 -3.1,.5 -2,1.1 1.9,.8 1.6,-1.5 2.4,-.4 2.2,1.5 1.5,-.1 2.5,-1.7 3.6,-2.1 5.2,-.3 4.9,-5.9 3.8,-3.1 9.3,-5.1 4.9,29.9 -2.2,1.2 1.4,2.1 -.1,2.2 .6,2 -1.1,3.4 -.1,5.4 -1,3.6 .5,1.1 -.4,2.2 -1.1,.5 -2,3.3 -1.8,2 h -.6 l -1.8,1.7 -1.3,-1.2 -1.5,1.8 -.3,1.2 h -1.3 l -1.3,2.2 .1,2.1 -1,.5 1.4,1.1 v 1.9 l -1,.2 -.7,.8 -1,.5 -.6,-2.1 -1.6,-.5 -1,2.3 -.3,2.2 -1.1,1.3 1.3,3.6 -1.5,.8 -.4,3.5 h -1.5 l -3.2,1.4 -1.2,-2.1 -3.5,-1.4 -.8,-2.9 -.5,-.8 -3.4,1.8 -.6,1.7 h -.9 l -1.3,.7 -1.2,-.8 -3,-.8 -1.9,.8 v 1 l -2.2,-.2 -1.9,-2.1 -2.3,.2 -4.1,-.7 v -1 l -2.2,-3.4 -2.9,-1.2 -1.9,.8 -2.2,-.1 -1.3,-.5 -6.6,-57.2 21.4,-3.5 z","OK":"m 501.5,398.6 -4.6,-3.8 -2.2,-.9 -.5,1.6 -5.1,.3 -.6,-1.5 -5,2.5 -1.6,-.7 -3.7,.3 -.6,1.7 -3.6,.9 -1.3,-1.2 -1.2,.1 -2,-1.8 -2.1,.7 -2,-.5 -1.8,-2 -2.5,4.2 -1.2,.8 -1,-1.8 .3,-2 -1.2,-.7 -2.3,2.5 -1.7,-1.2 -.1,-1.5 -1.3,.5 -2.6,-1.7 -3,2.6 -2.3,-1.1 .7,-2.1 -2.3,.1 -1.9,-3 -3.5,-1.1 -2,2.3 -2.3,-2.2 -1.4,.4 -2,.1 -3.5,-1.9 -2.3,.1 -1.2,-.7 -.5,-2.9 -2.3,-1.7 -1.1,1.5 -1.4,-1 -1.2,-.4 -1.1,1 -1.5,-.3 -2.5,-3 -2.7,-1.3 1.4,-42.7 -52.6,-3.2 .6,-10.6 16.5,1 67.7,2.9 62,.1 .2,10.8 4.1,24.4 -.7,39 z","OR":"m 93.9,166.5 47,11.2 8.5,-37.3 2.9,-5.8 .4,-2.1 .8,-.9 -.9,-2 -2.9,-1.2 .2,-4.2 4,-5.8 2.5,-.8 1.6,-2.3 -.1,-1.6 1.8,-1.6 3.2,-5.5 4.2,-4.8 -.5,-3.2 -3.5,-3.1 -1.6,-3.6 -30.3,-7.3 -2.8,1 -5.4,-.9 -1.8,-.9 -1.5,1.2 -3.3,-.4 -4.5,.5 -.9,.7 -4.2,-.4 -.8,-1.6 -1.2,-.2 -4.4,1.3 -1.6,-1.1 -2.2,.8 -.2,-1.8 -2.3,-1.2 -1.5,-.2 -1,-1.1 -3,.3 -1.2,-.8 h -1.2 l -1.2,.9 -5.5,.7 -6.6,-4.2 1.1,-5.6 -.4,-4.1 -3.2,-3.7 -3.7,.1 -.4,-1.1 .4,-1.2 -.7,-.8 -1,.1 -1.1,1.3 -1.5,-.2 -.5,-1.1 -1,-.1 -.7,.6 -2,-1.9 v 4.3 l -1.3,1.3 -1.1,3.5 -.1,2.3 -4.5,12.3 -13.2,31.3 -3.2,4.6 -1.6,-.1 .1,2.1 -5.2,7.1 -.3,3.3 1,1.3 .1,2.4 -1.2,1.1 -1.2,3 .1,5.7 1.2,2.9 z","PA":"m 826.3,189.4 -1.9,.3 -3,-2.2 -3,-5.8 h -2 l -.4,-1.5 -1.7,-1.1 -70.5,13.9 -.8,-6 -4.2,3.4 -.9,.1 -2.7,3 -3.3,1.7 4.9,29.9 3.2,19.7 17.4,-2.9 60.5,-11.8 1.2,-2.1 1.5,-1.1 1.6,-.3 1.6,.6 1.4,-1.7 1.6,-.6 1.8,-3 1.6,-2.3 3.3,-2.6 -4.2,-3.2 -2.1,-1.1 -1,-2.8 -2.7,-.9 -.5,-3.6 1,-1 .7,-2 -1.5,-1.8 3,-5.4 -.1,-2.2 1.8,-2.5 z","RI":"m 883.2,170.7 -1.3,-1.1 -2.6,-1.3 -.6,-2.2 h -.8 l -.7,-2.6 -6.5,2 3.2,12.3 -.4,1.1 .4,1.8 5.6,-3.6 .1,-3 -.8,-.8 .4,-.6 -.1,-1.3 -.9,-.7 1.2,-.4 -.9,-1.6 1.8,.7 .3,1.4 .7,1.2 -1.4,-.8 1.1,1.7 -.3,1.2 -.6,-1.1 v 2.5 l .6,-.9 .4,.9 1.3,-1.5 -.2,-2.5 1.4,3.1 1,-.9 z m -4.7,12.2 h .9 l .5,-.6 -.8,-1.3 -.7,.7 z","SC":"m 772.3,350.2 -19.7,2.8 -.1,-2.6 -3.3,-3 -1.2,1.5 -.7,-.3 .2,-1.4 -.4,-.5 -23.2,2.2 -7.3,4.3 -1.3,.1 -4.4,1.9 -.1,1.9 -1.9,1 -1.4,3.2 .2,1.3 6.1,3.8 2.6,-.3 3.1,4 .4,1.7 4.2,5.1 2.6,1.7 1.4,.2 2.2,1.6 1.1,2.2 2,1.6 1.8,.5 2.7,2.7 .1,1.4 2.6,2.8 5,2.3 3.6,6.7 .3,2.7 3.9,2.1 2.5,4.8 .8,3.1 4.2,.4 .8,-1.5 h .6 l 1.8,-1.5 .5,-2 3.2,-2.1 .3,-2.4 -1.2,-.9 .8,-.7 .8,.4 1.3,-.4 1.8,-2.1 3.8,-1.8 1.6,-2.4 .1,-.7 4.8,-4.4 -.1,-.5 -.9,-.8 1.1,-1.5 h .8 l .4,.5 .7,-.8 h 1.3 l .6,-1.5 2.3,-2.1 -.3,-5.4 .8,-2.3 3.6,-6.2 2.4,-2.2 2.2,-1.1 z","SD":"m 396.5,125.9 46,2.1 29.5,.4 -.1,2.2 -.9,2 -3.1,1.9 -.3,1.2 1.7,2.5 .4,1.8 2.6,.6 1.5,1.9 -.2,39.5 -2.2,-.1 -.1,1.6 1.3,1.5 -.1,1.1 -1,.5 .4,1.6 1.3,.4 .7,2 -1.7,5.1 -1,4.3 1.3,1.2 .3,1.3 .7,1.7 -1.5,.2 -1.8,-.7 -.9,-2.6 -1.2,-1.3 -6.1,-2.2 -.6,-1.1 -2,-.6 -1.4,.6 -1,-.5 -.9,.4 -.7,-.4 -.9,.4 -.7,-.5 -1,.7 -1.5,-.6 -1.8,2 -1.8,.1 -2.1,-2 -1.7,-.2 -3.4,-3.2 -38,-1.6 -51.1,-3.5 3.9,-43.9 2,-20.7 z","TN":"m 620.9,365.1 45.7,-4 22.9,-2.9 .1,-4.9 1.4,-1.3 1.5,.1 1.3,-.9 .8,-4.1 4.6,-3 3.6,-.5 3.2,-2.6 .5,-1.2 4.7,-2.4 .6,-3.4 4,-3.3 .8,.2 .1,1.5 .8,.8 1.5,-1.2 .7,-2.1 3.5,-2.5 2.6,1.1 2.4,-5.2 1.4,-1.2 1.5,.1 0,-5.2 .3,-.7 -4.6,.5 -.2,1 -28.9,3.3 -5.6,1.4 -20.5,1.4 -5.2,.8 -17.4,1 -2.6,.8 -22.6,2 -.7,-.6 h -3.7 l 1.2,3.2 -.6,.9 -23.3,1.5 -.8,1 -.8,-.7 h -1 v 1.3 l .6,1 -.1,1 -1.4,.5 1.4,1.5 -.8,.7 -1.7,-.2 .6,1 1.2,1.1 v .7 l -1.2,.5 -1,2 .1,.6 1.4,1 -.4,.7 h -1.5 v .5 l .9,.9 .1,.8 -1.4,.2 -.5,.8 -1.6,.2 -.9,.9 .6,.9 1.1,-.1 .5,.9 -1.6,1.3 .4,1.5 -2,-.6 -.1,.7 .4,1.1 -.3,1.4 -1.3,-.8 -.8,.8 1.1,.1 .1,1.5 -.6,1 1.1,.9 -.3,1.5 .8,.7 -.7,1 -1.2,-.5 -.9,2.2 -1.6,.7 z","TX":"m 282.3,429 .3,-3 34.4,3.6 31.8,2.6 7.9,-99.3 .8,0 52.6,3.2 -1.4,42.7 2.7,1.3 2.5,3 1.5,.3 1.1,-1 1.2,.4 1.4,1 1.1,-1.5 2.3,1.7 .5,2.9 1.2,.7 2.3,-.1 3.5,1.9 2,-.1 1.4,-.4 2.3,2.2 2,-2.3 3.5,1.1 1.9,3 2.3,-.1 -.7,2.1 2.3,1.1 3,-2.6 2.6,1.7 1.3,-.5 .1,1.5 1.7,1.2 2.3,-2.5 1.2,.7 -.3,2 1,1.8 1.2,-.8 2.5,-4.2 1.8,2 2,.5 2.1,-.7 2,1.8 1.2,-.1 1.3,1.2 3.6,-.9 .6,-1.7 3.7,-.3 1.6,.7 5,-2.5 .6,1.5 5.1,-.3 .5,-1.6 2.2,.9 4.6,3.8 6.4,1.9 2.6,2.3 2.8,-1.3 3.2,.8 .2,11.9 .5,19.9 .7,3.4 2.6,2.8 .7,5.4 3.8,4.6 .8,4.3 h 1 l -.1,7.3 -3.3,6.4 1.3,2.3 -1.3,1.5 .7,3 -.1,4.3 -2.2,3.5 -.1,.8 -1.7,1.2 1,1.8 1.2,1.1 -3.5,.3 -8.4,3.9 -3.5,1.4 -1.8,1.8 -.7,-.5 2.1,-2.3 1.8,-.7 .5,-.9 -2.9,-.1 -.7,-.8 .8,-2 -.9,-1.8 h -.6 l -2.4,1.3 -1.9,2.6 .3,1.7 3.3,3.4 1.3,.3 v .8 l -2.3,1.6 -4.9,4 -4,3.9 -3.2,1.4 -5,3 -3.7,2 -4.5,1.9 -4.1,2.5 3.2,-3 v -1.1 l .6,-.8 -.2,-1.8 -1.5,-.1 -1.1,1.5 -2.6,1.3 -1.8,-1.2 -.3,-1.7 h -1.5 l .8,2.2 1.4,.7 1.2,.9 1.8,1.6 -.7,.8 -3.9,1.7 -1.7,.1 -1.2,-1.2 -.5,2.1 .5,1.1 -2.7,2 -1.5,.2 -.8,.7 -.4,1.7 -1.8,3.3 -1.6,.7 -1.6,-.6 -1.8,1.1 .3,1.4 1.3,.8 1,.8 -1.8,3.5 -.3,2.8 -1,1.7 -1.4,1 -2.9,.4 1.8,.6 1.9,-.6 -.4,3.2 -1.1,-.1 .2,1.2 .3,1.4 -1.3,.9 v 3.1 l 1.6,1.4 .6,3.1 -.4,2.2 -1,.4 .4,1.5 1.1,.4 .8,1.7 v 2.6 l 1.1,2.1 2.2,2.6 -.1,.7 -2.2,-.2 -1.6,1.4 .2,1.4 -.9,-.3 -1.4,-.2 -3.4,-3.7 -2.3,-.6 h -7.1 l -2.8,-.8 -3.6,-3 -1.7,-1 -2.1,.1 -3.2,-2.6 -5.4,-1.6 v -1.3 l -1.4,-1.8 -.9,-4.7 -1.1,-1.7 -1.7,-1.4 v -1.6 l -1.4,-.6 .6,-2.6 -.3,-2.2 -1.3,-1.4 .7,-3 -.8,-3.2 -1.7,-1.4 h -1.1 l -4,-3.5 .1,-1.9 -.8,-1.7 -.8,-.2 -.9,-2.4 -2,-1.6 -2.9,-2.5 -.2,-2.1 -1,-.7 .2,-1.6 .5,-.7 -1.4,-1.5 .1,-.7 -2,-2.2 .1,-2.1 -2.7,-4.9 -.1,-1.7 -1.8,-3.1 -5.1,-4.8 v -1.1 l -3.3,-1.7 -.1,-1.8 -1.2,-.4 v -.7 l -.8,-.2 -2.1,-2.8 h -.8 l -.7,-.6 -1.3,1.1 h -2.2 l -2.6,-1.1 h -4.6 l -4.2,-2.1 -1.3,1.9 -2.2,-.6 -3.3,1.2 -1.7,2.8 -2,3.2 -1.1,4.4 -1.4,1.2 -1.1,.1 -.9,1.6 -1.3,.6 -.1,1.8 -2.9,.1 -1.8,-1.5 h -1 l -2,-2.9 -3.6,-.5 -1.7,-2.3 -1.3,-.2 -2.1,-.8 -3.4,-3.4 .2,-.8 -1.6,-1.2 -1,-.1 -3.4,-3.1 -.1,-2 -2.3,-4 .2,-1.6 -.7,-1.3 .8,-1.5 -.1,-2.4 -2.6,-4.1 -.6,-4.2 -1.6,-1.6 v -1 l -1.2,-.2 -.7,-1.1 -2.4,-1.7 -.9,-.1 -1.9,-1.6 v -1.1 l -2.9,-1.8 -.6,-2.1 -2.6,-2.3 -3.2,-4.4 -3,-1.3 -2.1,-1.8 .2,-1.2 -1.3,-1.4 -1.7,-3.7 -2.4,-1 z m 174.9,138.3 .8,.1 -.6,-4.8 -3.5,-12.3 -.2,-8.1 4.9,-10.5 6.1,-8.2 7.2,-5.1 v -.7 h -.8 l -2.6,1 -3.6,2.3 -.7,1.5 -8.2,11.6 -2.8,7.9 v 8.8 l 3.6,12 z","UT":"m 233.2,217.9 3.3,-21.9 -47.9,-8.2 -21,109 46.2,8.2 40,6 11.5,-88.3 z","VT":"m 859.1,102.4 -1.1,3.5 2.1,2.8 -.4,1.7 .1,1.3 -1.1,2.1 -1.4,.4 -.6,1.3 -2.1,1 -.7,1.5 1.4,3.4 -.5,2.5 .5,1.5 -1,1.9 .4,1.9 -1.3,1.9 .2,2.2 -.7,1.1 .7,4.5 .7,1.5 -.5,2.6 .9,1.8 -.2,2.5 -.5,1.3 -.1,1.4 2.1,2.6 -12.4,2.7 -1.1,-1 .5,-2 -3,-14.2 -1.9,-1.5 -.9,1.6 -.9,-2.2 .8,-1.8 -3.1,-6.7 .3,-3.8 .4,-1 -.6,-2 .4,-2.2 -2.2,-2.3 -.5,-3.2 .4,-1.5 -1.4,-.9 .6,-1.9 -.8,-1.7 27.3,-6.9 z","VA":"m 834.7,265.4 -1.1,2.8 .5,1.1 .4,-1.1 .8,-3.1 z m -34.6,-7 -.7,-1 1,-.1 1,-.9 .4,-1.8 -.2,-.5 .1,-.5 -.3,-.7 -.6,-.5 -.4,-.1 -.5,-.4 -.6,-.6 h -1 l -.6,-.1 -.4,-.4 .1,-.5 -1.7,-.6 -.8,.3 -1.2,-.1 -.7,-.7 -.5,-.2 -.2,-.7 .6,-.8 v -.9 l -1.2,-.2 -1,-.9 -.9,.1 -1.6,-.3 -.4,.7 -.4,1.6 -.5,2.3 -10,-5.2 -.2,.9 .9,1.6 -.8,2.3 .1,2.9 -1.2,.8 -.5,2.1 -.9,.8 -1.4,1.8 -.9,.8 -1,2.5 -2.4,-1.1 -2.3,8.5 -1.3,1.6 -2.8,-.5 -1.3,-1.9 -2.3,-.7 -.1,4.7 -1.4,1.7 .4,1.5 -2.1,2.2 .4,1.9 -3.7,6.3 -1,3.3 1.5,1.2 -1.5,1.9 .1,1.4 -2.3,2 -.7,-1.1 -4.3,3.1 -1.5,-1 -.6,1.4 .8,.5 -.5,.9 -5.5,2.4 -3,-1.8 -.8,1.7 -1.9,1.8 -2.3,.1 -4.4,-2.3 -.1,-1.5 -1.5,-.7 .8,-1.2 -.7,-.6 -4.9,6.6 -2.9,1 -3,3 -.4,2.2 -2.1,1.3 -.1,1.7 -1.4,1.4 -1.8,.5 -.5,1.9 -1,.4 -6.9,4.2 28.9,-3.3 .2,-1 4.6,-.5 -.3,.7 29.4,-3.5 39.4,-7.3 29.1,-6.1 -.6,-1.2 .4,-.1 .9,.9 -.1,-1.4 -.3,-1.9 1.6,1.2 .9,2.1 v -1.3 l -3.4,-5.5 v -1.2 l -.7,-.8 -1.3,.7 .5,1.4 h -.8 l -.4,-1 -.6,.9 -.9,-1.1 -2.1,-.1 -.2,.7 1.5,2.1 -1.4,-.7 -.5,-1 -.4,.8 -.8,.1 -1.5,1.7 .3,-1.6 v -1.4 l -1.5,-.7 -1.8,-.5 -.2,-1.7 -.6,-1.3 -.6,1.1 -1.7,-1 -2,.3 .2,-.9 1.5,-.2 .9,.5 1.7,-.8 .9,.4 .5,1 v .7 l 1.9,.4 .3,.9 .9,.4 .9,1.2 1.4,-1.6 h .6 l -.1,-2.1 -1.3,1 -.6,-.9 1.5,-.2 -1.2,-.9 -1.2,.6 -.1,-1.7 -1.7,.2 -2.2,-1.1 -1.8,-2.2 3.6,2.2 .9,.3 1.7,-.8 -1.7,-.9 .6,-.6 -1,-.5 .8,-.2 -.3,-.9 1.1,.9 .4,-.8 .4,1.3 1.2,.8 .6,-.5 -.5,-.6 -.1,-2.5 -1.1,-.1 -1.6,-.8 .9,-1.1 -2,-.1 -.4,-.5 -1.4,.6 -1.4,-.8 -.5,-1.2 -2.1,-1.2 -2.1,-1.8 -2.2,-1.9 3,1.3 .9,1.2 2.1,.7 2.3,2.5 .2,-1.7 .6,1.3 2.3,.5 v -4 l -.8,-1.1 1.1,.4 .1,-1.6 -3.1,-1.4 -1.6,-.2 -1.3,-.2 .3,-1.2 -1.5,-.3 -.1,-.6 h -1.8 l -.2,.8 -.7,-1 h -2.7 l -1,-.4 -.2,-1 -1.2,-.6 -.4,-1.5 -.6,-.4 -.7,1.1 -.9,.2 -.9,.7 h -1.5 l -.9,-1.3 .4,-3.1 .5,-2.4 .6,.5 z m 21.9,11.6 .9,-.1 0,-.6 -.8,.1 z m 7.5,14.2 -1,2.7 1.2,-1.3 z m -1.8,-15.3 .7,.3 -.2,1.9 -.5,-.5 -1.3,1 1,.4 -1.8,4.4 .1,8.1 1.9,3.1 .5,-1.5 .4,-2.7 -.3,-2.3 .7,-.9 -.2,-1.4 1.2,-.6 -.6,-.5 .5,-.7 .8,1.1 -.2,1.1 -.4,3.9 1.1,-2.2 .4,-3.1 .1,-3 -.3,-2 .6,-2.3 1.1,-1.8 .1,-2.2 .3,-.9 -4.6,1.6 -.7,.8 z","WA":"m 161.9,83.6 .7,4 -1.1,4.3 -30.3,-7.3 -2.8,1 -5.4,-.9 -1.8,-.9 -1.5,1.2 -3.3,-.4 -4.5,.5 -.9,.7 -4.2,-.4 -.8,-1.6 -1.2,-.2 -4.4,1.3 -1.6,-1.1 -2.2,.8 -.2,-1.8 -2.3,-1.2 -1.5,-.2 -1,-1.1 -3,.3 -1.2,-.8 h -1.2 l -1.2,.9 -5.5,.7 -6.6,-4.2 1.1,-5.6 -.4,-4.1 -3.2,-3.7 -3.7,.1 -.4,-1.1 .4,-1.2 -.7,-.8 -1,.1 -2.1,-1.5 -1.2,.4 -2,-.1 -.7,-1.5 -1.6,-.3 2.5,-7.5 -.7,6 .5,.5 v -2 l .8,-.2 1.1,2.3 -.5,-2.2 1.2,-4.2 1.8,.4 -1.1,-2 -1,.3 -1.5,-.4 .2,-4.2 .2,1.5 .9,.5 .6,-1.6 h 3.2 l -2.2,-1.2 -1.7,-1.9 -1.4,1.6 1.2,-3.1 -.3,-4.6 -.2,-3.6 .9,-6.1 -.5,-2 -1.4,-2.1 .1,-4 .4,-2.7 2,-2.3 -.7,-1.4 .2,-.6 .9,.1 7.8,7.6 4.7,1.9 5.1,2.5 3.2,-.1 .2,3 1,-1.6 h .7 l .6,2.7 .5,-2.6 1.4,-.2 .5,.7 -1.1,.6 .1,1.6 .7,-1.5 h 1.1 l -.4,2.6 -1.1,-.8 .4,1.4 -.1,1.5 -.8,.7 -2.5,2.9 1.2,-3.4 -1.6,.4 -.4,2.1 -3.8,2.8 -.4,1 -2.1,2.2 -.1,1 h 2.2 l 2.4,-.2 .5,-.9 -3.9,.5 v -.6 l 2.6,-2.8 1.8,-.8 1.9,-.2 1,-1.6 3,-2.3 v -1.4 h 1.1 l .1,4 h -1.5 l -.6,.8 -1.1,-.9 .3,1.1 v 1.7 l -.7,.7 -.3,-1.6 -.8,.8 .7,.6 -.9,1.1 h 1.3 l .7,-.5 .1,2 -1,1.9 -.9,1 -.1,1.8 -1,-.2 -.2,-1.4 .9,-1.1 -.8,-.5 -.8,.7 -.7,2.2 -.8,.9 -.1,-2 .8,-1.1 -.2,-1.1 -1.2,1.2 .1,2.2 -.6,.4 -2.1,-.4 -1.3,1.2 2.2,-.6 -.2,2.2 1,-1.8 .4,1.4 .5,-1 .7,1.8 h .7 l .7,-.8 .6,-.1 2,-1.9 .2,-1.2 .8,.6 .3,.9 .7,-.3 .1,-1.2 h 1.3 l .2,-2.9 -.1,-2.7 .9,.3 -.7,-2.1 1.4,-.8 .2,-2.4 2.3,-2.2 1,.1 .3,-1.4 -1.2,-1.4 -.1,-3.5 -.8,.9 .7,2.9 -.6,.1 -.6,-1.9 -.6,-.5 .3,-2.3 1.8,-.1 .3,.7 .3,-1.6 -1.6,-1.7 -.6,-1.6 -.2,2 .9,1.1 -.7,.4 -1,-.8 -1.8,1.3 1.5,.5 .2,2.4 -.3,1.8 .9,-1.3 1.4,2.3 -.4,1.9 h -1.5 v -1.2 l -1.5,-1.2 .5,-3 -1.9,-2.6 2.7,-3 .6,-4.1 h .9 l 1.4,3.2 v -2.6 l 1.2,.3 v -3.3 l -.9,-.8 -1.2,2.5 -1,-3 1.3,-.1 -1.5,-4.9 1.9,-.6 25.4,7.5 31.7,8 23.6,5.5 z m -78.7,-39.4 h .5 l .1,.8 -.5,.3 .1,.6 -.7,.4 -.2,-.9 .5,-.4 z m 5,-4.3 -1.2,1.9 -.1,.8 .4,.2 .5,-.6 1.1,.1 z m -.4,-21.6 .5,.6 1.3,-.3 .2,-1 1.2,-1.8 -1,-.4 -.7,1.6 -.1,-1.6 -1.1,.2 -.7,1.4 z m 3.2,-5.5 .7,1.5 -.9,.2 -.8,.4 -.2,-2.4 z m -2.7,-1.6 -1.1,-.2 .5,1.4 z m -1,2.5 .8,.4 -.4,1.1 1.7,-.5 -.2,-2.2 -.9,-.2 z m -2.7,-.4 .3,2.7 1.6,1.3 .6,-1.9 -1.1,-2.2 z m 1.9,-1.1 -1.1,-1 -.9,.1 1.8,1.5 z m 3.2,-7 h -1.2 v .8 l 1.2,.6 z m -.9,32.5 .4,-2.7 h -1.1 l -.2,1.9 z","WV":"m 723.4,297.5 -.8,1.2 1.5,.7 .1,1.5 4.4,2.3 2.3,-.1 1.9,-1.8 .8,-1.7 3,1.8 5.5,-2.4 .5,-.9 -.8,-.5 .6,-1.4 1.5,1 4.3,-3.1 .7,1.1 2.3,-2 -.1,-1.4 1.5,-1.9 -1.5,-1.2 1,-3.3 3.7,-6.3 -.4,-1.9 2.1,-2.2 -.4,-1.5 1.4,-1.7 .1,-4.7 2.3,.7 1.3,1.9 2.8,.5 1.3,-1.6 2.3,-8.5 2.4,1.1 1,-2.5 .9,-.8 1.4,-1.8 .9,-.8 .5,-2.1 1.2,-.8 -.1,-2.9 .8,-2.3 -.9,-1.6 .2,-.9 10,5.2 .5,-2.3 .4,-1.6 .4,-.7 -.9,-.4 .2,-1.6 -1,-.5 -.2,-.7 h -.7 l -.8,-1.2 .2,-1 -2.6,.4 -2.2,-1.6 -1.4,.3 -.9,1.4 h -1.3 l -1.7,2.9 -3.3,.4 -1.9,-1 -2.6,3.8 -2.2,-.3 -3.1,3.9 -.9,1.6 -1.8,1.6 -1.7,-11.4 -17.4,2.9 -3.2,-19.7 -2.2,1.2 1.4,2.1 -.1,2.2 .6,2 -1.1,3.4 -.1,5.4 -1,3.6 .5,1.1 -.4,2.2 -1.1,.5 -2,3.3 -1.8,2 h -.6 l -1.8,1.7 -1.3,-1.2 -1.5,1.8 -.3,1.2 h -1.3 l -1.3,2.2 .1,2.1 -1,.5 1.4,1.1 v 1.9 l -1,.2 -.7,.8 -1,.5 -.6,-2.1 -1.6,-.5 -1,2.3 -.3,2.2 -1.1,1.3 1.3,3.6 -1.5,.8 -.4,3.5 h -1.5 l -3.2,1.4 -.1,1.1 .6,1 -.6,3.6 1.9,1.6 .8,1.1 1,.6 -.1,.9 4.4,5.6 h 1.4 l 1.5,1.8 1.2,.3 1.4,-.1 z","WI":"m 611,144 -2.9,.8 .2,2.3 -2.4,3.4 -.2,3.1 .6,.7 .8,-.7 .5,-1.6 2,-1.1 1.6,-4.2 3.5,-1.1 .8,-3.3 .7,-.9 .4,-2.1 1.8,-1.1 v -1.5 l 1,-.9 1.4,.1 v 2 l -1,.1 .5,1.2 -.7,2.2 -.6,.1 -1.2,4.5 -.7,.5 -2.8,7.2 -.3,4.2 .6,2 .1,1.3 -2.4,1.9 .3,1.9 -.9,3.1 .3,1.6 .4,3.7 -1.1,4.1 -1.5,5 1,1.5 -.3,.3 .8,1.7 -.5,1.1 1.1,.9 v 2.7 l 1.3,1.5 -.4,3 .3,4 -45.9,2.8 -1.3,-2.8 -3.3,-.7 -2.7,-1.5 -2,-5.5 .1,-2.5 1.6,-3.3 -.6,-1.1 -2.1,-1.6 -.2,-2.6 -1.1,-4.5 -.2,-3 -2.2,-3 -2.8,-.7 -5.2,-3.6 -.6,-3.3 -6.3,-3.1 -.2,-1.3 h -3.3 l -2.2,-2.6 -2,-1.3 .7,-5.1 -.9,-1.6 .5,-5.4 1,-1.8 -.3,-2.7 -1.2,-1.3 -1.8,-.3 v -1.7 l 2.8,-5.8 5.9,-3.9 -.4,-13 .9,.4 .6,-.5 .1,-1.1 .9,-.6 1.4,1.2 .7,-.1 h 2.6 l 6.8,-2.6 .3,-1 h 1.2 l .7,-1.2 .4,.8 1.8,-.9 1.8,-1.7 .3,.5 1,-1 2.2,1.6 -.8,1.6 -1.2,1.4 .5,1.5 -1.4,1.6 .4,.9 2.3,-1.1 v -1.4 l 3.3,1.9 1.9,.7 1.9,.7 3,3.8 17,3.8 1.4,1 4,.8 .7,.5 2.8,-.2 4.9,.8 1.4,1.5 -1,1 .8,.8 3.8,.7 1.2,1.2 .1,4.4 -1.3,2.8 2,.1 1,-.8 .9,.8 -1.1,3.1 1,1.6 1.2,.3 z m -49.5,-37.3 -.5,.1 -1.5,1.6 .2,.5 1.5,-.6 v -.6 l .9,-.3 z m 1.6,-1.1 -1,.3 -.2,.7 .9,-.1 z m -1.3,-1.6 -.2,.9 h 1.7 l .6,-.4 .1,-1 z m 2.8,-3 -.3,1.9 1.2,-.5 .1,-1.4 z m 58.3,31.9 -2,.3 -.4,1.3 1.3,1.7 z","WY":"m 355.3,143.7 -51,-5.3 -57.3,-7.9 -2,10.7 -8.5,54.8 -3.3,21.9 32.1,4.8 44.9,5.7 37.5,3.4 3.7,-44.2 z","DC":"m 803.5,252 -2.6,-1.8 -1,1.7 .5,.4 .4,.1 .6,.5 .3,.7 -.1,.5 .2,.5 z"};
+
+var LABEL_POS = {"AL":[643,400],"AK":[161,488],"AZ":[205,410],"AR":[568,395],"CA":[122,350],"CO":[305,310],"CT":[852,185],"DE":[820,270],"FL":[710,470],"GA":[685,400],"HI":[305,530],"ID":[195,215],"IL":[600,300],"IN":[635,285],"IA":[535,240],"KS":[450,330],"KY":[665,320],"LA":[575,450],"ME":[885,105],"MD":[800,265],"MA":[870,175],"MI":[640,210],"MN":[510,170],"MS":[610,420],"MO":[555,330],"MT":[275,145],"NE":[430,270],"NV":[155,300],"NH":[870,150],"NJ":[830,245],"NM":[275,400],"NY":[820,175],"NC":[740,345],"ND":[430,145],"OH":[680,265],"OK":[460,380],"OR":[130,180],"PA":[785,235],"RI":[870,190],"SC":[720,375],"SD":[430,195],"TN":[645,355],"TX":[420,445],"UT":[230,310],"VT":[855,140],"VA":[755,300],"WA":[150,115],"WV":[725,290],"WI":[560,190],"WY":[300,225],"DC":[810,275]};
+
+var STATE_POSTAL = {
+'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+'Colorado':'CO','Connecticut':'CT','Delaware':'DE','District of Columbia':'DC',
+'Florida':'FL','Georgia':'GA','Hawaii':'HI','Idaho':'ID','Illinois':'IL',
+'Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA',
+'Maine':'ME','Maryland':'MD','Massachusetts':'MA','Michigan':'MI','Minnesota':'MN',
+'Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV',
+'New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY',
+'North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
+'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI',
+'South Carolina':'SC','South Dakota':'SD','Tennessee':'TN','Texas':'TX',
+'Utah':'UT','Vermont':'VT','Virginia':'VA','Washington':'WA',
+'West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY'
+};
+
+var POSTAL_STATE = {};
+for(var sn in STATE_POSTAL){ POSTAL_STATE[STATE_POSTAL[sn]] = sn; }
+
+var REQ_ACTIONS = {
+  disclose: {icon:'&#128221;', label:'Disclose AI Use', action:'Include a statement in your filing disclosing that AI tools were used.'},
+  tool: {icon:'&#128295;', label:'Name the Tool', action:'Identify the specific AI tool(s) used by name (e.g., ChatGPT, CoCounsel).'},
+  how: {icon:'&#128196;', label:'Describe How Used', action:'Explain how AI assisted in preparing the filing.'},
+  sections: {icon:'&#128204;', label:'ID AI-Assisted Sections', action:'Mark which sections were drafted or assisted by AI.'},
+  verify: {icon:'&#9989;', label:'Verify Accuracy', action:'Independently verify all AI-generated content and citations.'},
+  certify_all: {icon:'&#9997;&#65039;', label:'Certify All Filings', action:'Sign a certification on ALL filings attesting to accuracy.'},
+  certify_if_ai: {icon:'&#9997;&#65039;', label:'Certify If AI Used', action:'Sign a certification that AI-generated content has been verified.'},
+  prompts: {icon:'&#128190;', label:'Retain Prompts', action:'Preserve all AI prompts and outputs; produce on request.'},
+  proprietary: {icon:'&#128274;', label:'Protect Proprietary Info', action:'Do not input confidential or privileged information into AI tools.'},
+  prohibited: {icon:'&#128683;', label:'AI Prohibited', action:'AI tools are prohibited for filings in this court.'},
+  warning: {icon:'&#9888;&#65039;', label:'Warning Issued', action:'The court has warned about AI use; exercise heightened caution.'},
+  rules: {icon:'&#128214;', label:'Cites Existing Rules', action:'References existing professional conduct rules as governing AI use.'},
+  evidence: {icon:'&#128269;', label:'Disclose AI Evidence', action:'Disclose when AI-generated content is submitted as evidence.'}
+};
+
+// Court alias map: common abbreviations and full names -> normalized forms
+var COURT_ALIASES={
+'sdny':'S.D.N.Y.','edny':'E.D.N.Y.','ndny':'N.D.N.Y.','wdny':'W.D.N.Y.',
+'cdcal':'C.D. Cal.','ndcal':'N.D. Cal.','edcal':'E.D. Cal.','sdcal':'S.D. Cal.',
+'ndill':'N.D. Ill.','cdill':'C.D. Ill.','sdill':'S.D. Ill.',
+'edtex':'E.D. Tex.','sdtex':'S.D. Tex.','ndtex':'N.D. Tex.','wdtex':'W.D. Tex.',
+'edpa':'E.D. Pa.','wdpa':'W.D. Pa.','mdpa':'M.D. Pa.',
+'sdfl':'S.D. Fla.','mdfl':'M.D. Fla.','ndfl':'N.D. Fla.',
+'edva':'E.D. Va.','wdva':'W.D. Va.',
+'edmi':'E.D. Mich.','wdmi':'W.D. Mich.',
+'ddc':'D.D.C.','dnj':'D.N.J.','dmd':'D. Md.','dmass':'D. Mass.',
+'dco':'D. Colo.','daz':'D. Ariz.','dor':'D. Or.','dct':'D. Conn.',
+'southern district of new york':'S.D.N.Y.','eastern district of new york':'E.D.N.Y.',
+'northern district of new york':'N.D.N.Y.','western district of new york':'W.D.N.Y.',
+'central district of california':'C.D. Cal.','northern district of california':'N.D. Cal.',
+'southern district of florida':'S.D. Fla.','middle district of florida':'M.D. Fla.',
+'northern district of illinois':'N.D. Ill.','eastern district of texas':'E.D. Tex.',
+'southern district of texas':'S.D. Tex.','northern district of texas':'N.D. Tex.',
+'western district of texas':'W.D. Tex.','district of columbia':'District of Columbia',
+'dc':'District of Columbia','d.c.':'District of Columbia'
+};
+
+var REQ_LABELS = {
+  disclose:'Disclose AI Use', tool:'Disclose Tool', how:'Disclose How Used',
+  sections:'ID Sections', verify:'Verify Accuracy', certify_all:'Certify All Filings',
+  certify_if_ai:'Certify If AI Used', prompts:'Retain Prompts', proprietary:'Protect Proprietary',
+  prohibited:'Prohibits AI', warning:'Warning Only', rules:'Cites Rules', evidence:'Disclose AI Evidence'
+};
+
+function esc(s){if(!s)return '';var e=document.createElement('span');e.textContent=s;return e.innerHTML;}
+
+function parseDate(d){
+  if(!d)return 0;
+  var parts=d.split(/[-\/]/);
+  if(parts.length===3) return new Date(parts[0],parts[1]-1,parts[2]).getTime();
+  return new Date(d).getTime()||0;
+}
+
+function sortNewestFirst(arr){
+  return arr.slice().sort(function(a,b){ return parseDate(b.date)-parseDate(a.date); });
+}
+
+function initSearch(){
+  var tok=function(text){return text.toLowerCase().replace(/\./g,'').split(/[\s,;:–—\-\/]+/).filter(function(t){return t.length>0;});};
+  ms=new MiniSearch({
+    fields:['judge','court','courtNorm','state','name','other'],
+    storeFields:['idx'],
+    tokenize:tok,
+    searchOptions:{
+      boost:{judge:3,court:2,courtNorm:2,state:2,name:2,other:0.5},
+      prefix:true,
+      fuzzy:0.2,
+      combineWith:'AND'
+    }
+  });
+  var docs=DATA.map(function(d,i){
+    var parts=[d.type,d.ai_type,d.applies_to];
+    if(Array.isArray(d.applicableTo))parts.push(d.applicableTo.join(' '));
+    return {id:i,idx:i,judge:d.judge||'',court:d.court||'',courtNorm:(d.court||'').replace(/\./g,''),state:d.state||'',name:d.name||'',other:parts.filter(Boolean).join(' ')};
+  });
+  ms.addAll(docs);
+}
+
+function doSearch(q){
+  if(!ms||!q)return DATA;
+  var ql=q.toLowerCase().replace(/\./g,'').replace(/\s+/g,' ').trim();
+  var aliasKey=Object.keys(COURT_ALIASES).find(function(k){return k===ql;});
+  if(aliasKey){
+    var target=COURT_ALIASES[aliasKey].toLowerCase();
+    return DATA.filter(function(d){
+      return (d.court||'').toLowerCase().indexOf(target)>=0 ||
+             (d.state||'').toLowerCase()===target;
+    });
+  }
+  var results=ms.search(q,{prefix:true,fuzzy:0.2,combineWith:'AND'});
+  return results.map(function(r){return DATA[r.idx];});
+}
+
+function reqPills(d){
+  var r=d.reqs||{}, pills=[];
+  if(r.disclose)pills.push('<span class="rq rq-disclose">Disclose</span>');
+  if(r.tool)pills.push('<span class="rq rq-tool">Name Tool</span>');
+  if(r.sections)pills.push('<span class="rq rq-sections">ID Sections</span>');
+  if(r.certify_all||r.certify_if_ai)pills.push('<span class="rq rq-certify">Certify</span>');
+  if(r.verify)pills.push('<span class="rq rq-verify">Verify</span>');
+  if(r.prompts)pills.push('<span class="rq rq-prompts">Retain Prompts</span>');
+  if(r.prohibited)pills.push('<span class="rq rq-prohibit">Prohibited</span>');
+  if(r.evidence)pills.push('<span class="rq rq-disclose">AI Evidence</span>');
+  return pills.join('');
+}
+
+function reqCount(d){var c=0;var r=d.reqs||{};for(var k in r){if(r[k])c++;}return c;}
+
+function snippetSummary(s,len){
+  if(!s)return '';
+  s=s.replace(/<[^>]+>/g,'');
+  if(s.length>len)s=s.substring(0,len)+'...';
+  return s;
+}
+
+var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(d){
+  if(!d)return 'No date';
+  var m=d.match(/^(\d{4})-(\d{2})(?:-(\d{2}))?/);
+  if(!m)return d;
+  var mon=MONTHS[parseInt(m[2],10)-1]||m[2];
+  return m[3]?mon+' '+parseInt(m[3],10)+', '+m[1]:mon+' '+m[1];
+}
+function srcBadge(s){
+  return '';
+}
+
+function typeBadge(t){
+  if(t==='Standing Order')return '<span class="r-badge so">STANDING ORDER</span>';
+  if(t==='Judicial Opinion')return '<span class="r-badge jo">OPINION</span>';
+  if(t==='Administrative Order')return '<span class="r-badge ao">ADMIN ORDER</span>';
+  if(t==='Local Rules')return '<span class="r-badge lr">LOCAL RULE</span>';
+  return '<span class="r-badge pd">PRACTICE DIR</span>';
+}
+function consqBadge(c){
+  if(c==='sanctions_attorney'||c==='sanctions_party')return '<span class="r-consequence sn">SANCTIONS</span>';
+  if(c==='warning')return '<span class="r-consequence wn">WARNING</span>';
+  return '';
+}
+function consqLabel(c){
+  if(c==='sanctions_attorney')return 'Sanctions (Attorney)';
+  if(c==='sanctions_party')return 'Sanctions (Party)';
+  if(c==='warning')return 'Warning';
+  return '';
+}
+
+function getColorForCount(count, maxCount){
+  if(count===0) return '#E8E8E8';
+  var t = Math.min(count / maxCount, 1);
+  t = Math.pow(t, 0.5);
+  var r = Math.round(232 - t * (232 - 21));
+  var g = Math.round(232 - t * (232 - 128));
+  var b = Math.round(232 - t * (232 - 61));
+  return 'rgb('+r+','+g+','+b+')';
+}
+
+function buildMap(){
+  var byState={};
+  DATA.forEach(function(d){
+    var s=d.state||'Unknown';
+    if(!byState[s])byState[s]=0;
+    byState[s]++;
+  });
+  var maxCount=0;
+  for(var s in byState){if(byState[s]>maxCount)maxCount=byState[s];}
+
+  var postalCounts={};
+  for(var sn in STATE_POSTAL){
+    var pc=STATE_POSTAL[sn];
+    postalCounts[pc]=byState[sn]||0;
+  }
+
+  var svg='<svg viewBox="0 0 959 593" xmlns="http://www.w3.org/2000/svg">';
+  for(var code in STATE_PATHS){
+    var cnt=postalCounts[code]||0;
+    var fill=getColorForCount(cnt, maxCount);
+    var fullName=POSTAL_STATE[code]||code;
+    svg+='<path d="'+STATE_PATHS[code]+'" fill="'+fill+'" data-state="'+esc(fullName)+'" data-code="'+code+'" data-count="'+cnt+'"/>';
+  }
+  for(var code in LABEL_POS){
+    var pos=LABEL_POS[code];
+    svg+='<text x="'+pos[0]+'" y="'+pos[1]+'">'+code+'</text>';
+  }
+  svg+='</svg>';
+  document.getElementById('exMapContainer').insertAdjacentHTML('afterbegin', svg);
+
+  var tooltip=document.getElementById('exMapTooltip');
+  var container=document.getElementById('exMapContainer');
+
+  container.addEventListener('mouseover',function(e){
+    var path=e.target.closest('path[data-state]');
+    if(!path)return;
+    tooltip.textContent=path.dataset.state+': '+path.dataset.count+' order'+(path.dataset.count!=='1'?'s':'');
+    tooltip.style.display='block';
+  });
+  container.addEventListener('mousemove',function(e){
+    var rect=container.getBoundingClientRect();
+    tooltip.style.left=(e.clientX-rect.left+12)+'px';
+    tooltip.style.top=(e.clientY-rect.top-28)+'px';
+  });
+  container.addEventListener('mouseout',function(e){
+    if(e.target.closest('path[data-state]'))tooltip.style.display='none';
+  });
+  container.addEventListener('click',function(e){
+    var path=e.target.closest('path[data-state]');
+    if(!path)return;
+    document.getElementById('exHeroSearch').value='';
+    document.getElementById('fState').value=path.dataset.state;
+    applyFilters();
+    document.getElementById('exFilters').scrollIntoView({behavior:'instant',block:'start'});
+  });
+}
+
+function renderStats(){
+  var so=0,op=0,sn=0,wn=0,states=new Set();
+  DATA.forEach(function(d){
+    if(d.type==='Standing Order')so++;
+    if(d.type==='Judicial Opinion')op++;
+    if(d.consequence==='sanctions_attorney'||d.consequence==='sanctions_party')sn++;
+    if(d.consequence==='warning')wn++;
+    if(d.state&&d.state!=='Federal')states.add(d.state);
+  });
+  document.getElementById('exStats').innerHTML=
+    '<div class="ex-stat info"><div class="num">'+so+'</div><div class="label">Standing Orders</div></div>'+
+    '<div class="ex-stat"><div class="num">'+states.size+'</div><div class="label">States</div></div>'+
+    '<div class="ex-stat warn"><div class="num">'+wn+'</div><div class="label">Warnings Issued</div></div>'+
+    '<div class="ex-stat danger"><div class="num">'+sn+'</div><div class="label">Sanctions Cases</div></div>'+
+    '<div class="ex-stat"><div class="num">'+DATA.length+'</div><div class="label">Total Orders</div></div>';
+}
+
+function applyFilters(){
+  var typeF=document.getElementById('fType').value;
+  var stateF=document.getElementById('fState').value;
+  var judgeF=document.getElementById('fJudge').value;
+  var outcomeF=document.getElementById('fOutcome').value;
+  var tagF=document.getElementById('fTag').value;
+  var dateFrom=document.getElementById('fDateFrom').value;
+  var dateTo=document.getElementById('fDateTo').value;
+  var q=document.getElementById('exHeroSearch').value.toLowerCase();
+
+  var searchMatches=q?new Set(doSearch(q).map(function(d){return d.id;})):null;
+  filtered=DATA.filter(function(d){
+    if(searchMatches&&!searchMatches.has(d.id))return false;
+    if(typeF&&d.type!==typeF)return false;
+    if(stateF&&d.state!==stateF)return false;
+    if(judgeF&&(d.judge||'')!==judgeF)return false;
+    if(outcomeF==='none'&&d.consequence)return false;
+    if(outcomeF&&outcomeF!=='none'&&d.consequence!==outcomeF)return false;
+    if(tagF&&!(Array.isArray(d.applicableTo)&&d.applicableTo.indexOf(tagF)>=0))return false;
+    if(dateFrom&&d.date&&d.date.substring(0,7)<dateFrom)return false;
+    if(dateTo&&d.date&&d.date.substring(0,7)>dateTo)return false;
+    for(var c of chips){
+      if(c==='has_link'&&!d.link)return false;
+      if(c==='req_disclose'&&!d.reqs.disclose)return false;
+      if(c==='prohibited'&&!d.reqs.prohibited)return false;
+      if(c==='at_filings'&&!(Array.isArray(d.applicableTo)&&d.applicableTo.some(function(a){return a.indexOf('Filings')>=0;})))return false;
+      if(c==='at_research'&&!(Array.isArray(d.applicableTo)&&d.applicableTo.some(function(a){return a.indexOf('Research')>=0;})))return false;
+      if(c==='at_consequences'&&!(Array.isArray(d.applicableTo)&&d.applicableTo.some(function(a){return a.indexOf('Consequences')>=0;})))return false;
+    }
+    return true;
+  });
+
+  // Sort newest first
+  filtered.sort(function(a,b){ return parseDate(b.date)-parseDate(a.date); });
+
+  // Group by judge — use court-qualified key for generic names like "All Judges", "District Wide"
+  var judgeGroups = {};
+  filtered.forEach(function(d){
+    var jname = d.judge || d.name || 'Unknown';
+    var jl = jname.toLowerCase();
+    var isGeneric = jl==='all judges'||jl==='district wide'||jl==='unknown'||/^local\s/.test(jl)||/^lcr/i.test(jl);
+    var key = isGeneric ? jname + ' — ' + (d.court||d.state||'') : jname;
+    var displayName = isGeneric ? (d.court||jname) : jname;
+    if(!judgeGroups[key]) judgeGroups[key] = {judge:displayName, court:'', state:'', entries:[], reqs:{}, sanctions:0, warnings:0, orders:0, opinions:0};
+    var g = judgeGroups[key];
+    g.entries.push(d);
+    if(d.court) g.court = d.court;
+    if(d.state) g.state = d.state;
+    var r = d.reqs || {};
+    for(var k in r){ if(r[k]) g.reqs[k] = true; }
+    if(d.type==='Standing Order'||d.type==='Local Rules'||d.type==='Administrative Order') g.orders++;
+    if(d.type==='Judicial Opinion') g.opinions++;
+    if(d.consequence==='sanctions_attorney'||d.consequence==='sanctions_party') g.sanctions++;
+    if(d.consequence==='warning') g.warnings++;
+  });
+  var groups = Object.values(judgeGroups);
+  // Sort: judges with standing orders first, then those with sanctions/warnings, then by name
+  groups.sort(function(a,b){
+    // Has standing orders > has sanctions > opinions only
+    var aPri = a.orders>0 ? 0 : (a.sanctions+a.warnings>0 ? 1 : 2);
+    var bPri = b.orders>0 ? 0 : (b.sanctions+b.warnings>0 ? 1 : 2);
+    if(aPri!==bPri) return aPri-bPri;
+    // Within same priority, more entries first
+    if(a.entries.length!==b.entries.length) return b.entries.length-a.entries.length;
+    return a.judge.localeCompare(b.judge);
+  });
+
+  document.getElementById('exCount').textContent=filtered.length+' of '+DATA.length;
+
+  // Update judge dropdown to show only judges matching current filters (excluding judge filter itself)
+  var jsel=document.getElementById('fJudge');
+  var curJudge=jsel.value;
+  var filteredJudges={};
+  DATA.filter(function(d){
+    if(typeF&&d.type!==typeF)return false;
+    if(stateF&&d.state!==stateF)return false;
+    if(outcomeF==='none'&&d.consequence)return false;
+    if(outcomeF&&outcomeF!=='none'&&d.consequence!==outcomeF)return false;
+    if(tagF&&!(Array.isArray(d.applicableTo)&&d.applicableTo.indexOf(tagF)>=0))return false;
+    if(dateFrom&&d.date&&d.date.substring(0,7)<dateFrom)return false;
+    if(dateTo&&d.date&&d.date.substring(0,7)>dateTo)return false;
+    return true;
+  }).forEach(function(d){if(d.judge)filteredJudges[d.judge]=1;});
+  while(jsel.options.length>1)jsel.remove(1);
+  Object.keys(filteredJudges).sort().forEach(function(j){
+    var o=document.createElement('option');o.value=j;o.textContent=j;jsel.appendChild(o);
+  });
+  jsel.value=curJudge;
+
+  renderFilterChips();
+  renderList(groups);
+  if(groups.length>0){
+    var found=false;
+    if(selJudge){
+      for(var i=0;i<groups.length;i++){
+        if(groups[i].judge===selJudge){renderJudgeDetail(groups[i]);found=true;break;}
+      }
+    }
+    if(!found){document.getElementById('exDetail').innerHTML='<div class="d-empty">Select a judge from the list or use search to view details</div>';selJudge=null;}
+  } else {
+    selJudge=null;
+    document.getElementById('exDetail').innerHTML='<div class="d-empty">No results match your filters</div>';
+  }
+}
+
+function renderFilterChips(){
+  var el=document.getElementById('exFilterChips');
+  var parts=[];
+  var typeF=document.getElementById('fType').value;
+  var stateF=document.getElementById('fState').value;
+  var judgeF=document.getElementById('fJudge').value;
+  var outcomeF=document.getElementById('fOutcome').value;
+  var tagF=document.getElementById('fTag').value;
+  var dateFrom=document.getElementById('fDateFrom').value;
+  var dateTo=document.getElementById('fDateTo').value;
+
+  if(typeF)parts.push({label:'Type: '+typeF,clear:function(){document.getElementById('fType').value='';}});
+  if(stateF)parts.push({label:'State: '+stateF,clear:function(){document.getElementById('fState').value='';}});
+  if(judgeF)parts.push({label:'Judge: '+judgeF,clear:function(){document.getElementById('fJudge').value='';}});
+  if(outcomeF)parts.push({label:'Outcome: '+(outcomeF==='none'?'No Consequence':outcomeF),clear:function(){document.getElementById('fOutcome').value='';}});
+  if(tagF)parts.push({label:'Sector: '+tagF,clear:function(){document.getElementById('fTag').value='';}});
+  if(dateFrom)parts.push({label:'From: '+dateFrom,clear:function(){document.getElementById('fDateFrom').value='';}});
+  if(dateTo)parts.push({label:'To: '+dateTo,clear:function(){document.getElementById('fDateTo').value='';}});
+  chips.forEach(function(c){
+    var chipLabels={has_link:'Has Link',req_disclose:'Requires Disclosure',prohibited:'Prohibits AI',at_filings:'Filings/Drafting',at_research:'Research',at_consequences:'Consequences'};
+    var lbl=chipLabels[c]||c;
+    parts.push({label:lbl,chip:c,clear:function(){
+      chips.delete(c);
+      var chipEl=document.querySelector('.chip[data-f="'+c+'"]');
+      if(chipEl)chipEl.classList.remove('on','on-red','on-orange');
+    }});
+  });
+
+  if(parts.length===0){el.innerHTML='';return;}
+
+  el.innerHTML=parts.map(function(p,i){
+    return '<span class="filter-chip" data-idx="'+i+'">'+esc(p.label)+' <span class="fc-x">&times;</span></span>';
+  }).join('')+'<span class="filter-chip clear-all" id="clearAllFilters">Clear All</span>';
+
+  el.querySelectorAll('.filter-chip:not(.clear-all)').forEach(function(chip){
+    chip.addEventListener('click',function(){
+      var idx=parseInt(chip.dataset.idx);
+      parts[idx].clear();
+      applyFilters();
+    });
+  });
+  document.getElementById('clearAllFilters').addEventListener('click',function(){
+    document.getElementById('exHeroSearch').value='';
+    parts.forEach(function(p){p.clear();});
+    applyFilters();
+  });
+}
+
+function renderList(groups){
+  var el=document.getElementById('exList');
+  var show=groups.slice(0,500);
+  var totalEntries=0;groups.forEach(function(g){totalEntries+=g.entries.length;});
+  var header='<div class="list-header"><strong>'+groups.length+'</strong> judges &middot; <strong>'+totalEntries+'</strong> entries <span style="float:right;color:#94a3b8;font-weight:400;">sorted by most entries</span></div>';
+  if(groups.length>500){
+    header+='<div style="padding:6px 20px;background:#fffbeb;border-bottom:1px solid #fde68a;font-size:12px;color:#92400e;">Showing first 500 of '+groups.length+' judges &mdash; narrow your filters to see all</div>';
+  }
+  el.innerHTML=header+show.map(function(g){
+    var counts=[];
+    if(g.orders) counts.push(g.orders+' order'+(g.orders>1?'s':''));
+    if(g.opinions) counts.push(g.opinions+' opinion'+(g.opinions>1?'s':''));
+    if(g.sanctions) counts.push(g.sanctions+' sanction'+(g.sanctions>1?'s':''));
+    if(g.warnings) counts.push(g.warnings+' warning'+(g.warnings>1?'s':''));
+    var countStr=counts.join(' \u00b7 ');
+    var rp='';
+    var rr=g.reqs;
+    if(rr.disclose)rp+='<span class="rq rq-disclose">Disclose</span>';
+    if(rr.tool)rp+='<span class="rq rq-tool">Name Tool</span>';
+    if(rr.sections)rp+='<span class="rq rq-sections">ID Sections</span>';
+    if(rr.certify_all||rr.certify_if_ai)rp+='<span class="rq rq-certify">Certify</span>';
+    if(rr.verify)rp+='<span class="rq rq-verify">Verify</span>';
+    if(rr.prompts)rp+='<span class="rq rq-prompts">Retain Prompts</span>';
+    if(rr.prohibited)rp+='<span class="rq rq-prohibit">Prohibited</span>';
+    if(rr.evidence)rp+='<span class="rq rq-disclose">AI Evidence</span>';
+    var preview=snippetSummary(g.entries[0].summary||g.entries[0].name||'',90);
+    return '<div class="ex-row'+(g.judge===selJudge?' sel':'')+'" data-judge="'+esc(g.judge)+'">'+
+      '<div class="r-top">'+
+      '<span class="r-judge">'+esc(g.judge)+'</span>'+
+      '<span class="r-counts">'+esc(countStr)+'</span>'+
+      '</div>'+
+      '<div class="r-meta"><span>'+esc(g.court)+'</span><span>'+esc(g.state)+'</span></div>'+
+      (preview?'<div class="r-preview">'+esc(preview)+'</div>':'')+
+      (rp?'<div class="r-reqs">'+rp+'</div>':'')+
+    '</div>';
+  }).join('');
+
+  el.querySelectorAll('.ex-row').forEach(function(r){
+    r.addEventListener('click',function(){
+      var judgeName=r.dataset.judge;
+      selJudge=judgeName;
+      var group=show.find(function(g){return g.judge===judgeName;});
+      if(group) renderJudgeDetail(group);
+      el.querySelectorAll('.ex-row').forEach(function(x){x.classList.remove('sel');});
+      r.classList.add('sel');
+      if(window.innerWidth<=900){document.getElementById('exDetail').scrollIntoView({behavior:'instant',block:'start'});}
+    });
+  });
+}
+
+function renderJudgeDetail(group){
+  var p=document.getElementById('exDetail');
+  var html='<div class="d-title">'+esc(group.judge)+'</div>';
+  html+='<div style="font-size:14px;color:#64748b;margin-bottom:16px;">'+esc(group.court)+(group.state?' &middot; '+esc(group.state):'')+'</div>';
+
+  // Alerts
+  if(group.sanctions>0){
+    html+='<div class="d-alert sanctions">&#9888;&#65039; '+group.sanctions+' sanctions case'+(group.sanctions>1?'s':'')+' associated with this judge</div>';
+  }
+  if(group.warnings>0){
+    html+='<div class="d-alert warning">&#9888;&#65039; '+group.warnings+' warning'+(group.warnings>1?'s':'')+' issued about AI use</div>';
+  }
+
+  // Requirements summary (compact)
+  var reqKeys=Object.keys(group.reqs);
+  if(reqKeys.length>0){
+    html+='<div class="d-section"><h3>Requirements ('+reqKeys.length+')</h3>';
+    reqKeys.forEach(function(k){
+      var ra=REQ_ACTIONS[k];
+      if(!ra)return;
+      html+='<div class="jd-req">'+
+        '<div class="jd-icon">'+ra.icon+'</div>'+
+        '<div><div class="jd-label">'+ra.label+'</div>'+
+        '<div class="jd-action">'+ra.action+'</div></div></div>';
+    });
+    html+='</div>';
+  }
+
+  // Chronological timeline — all entries sorted oldest→newest so practitioner sees history
+  var timeline=group.entries.slice().sort(function(a,b){ return parseDate(a.date)-parseDate(b.date); });
+  html+='<div class="d-section"><h3>History ('+timeline.length+' entries, oldest first)</h3>';
+  html+='<div class="jd-timeline">';
+  timeline.forEach(function(d){
+    var name=d.name||d.type||'Entry';
+    if(name.length>100) name=name.substring(0,97)+'...';
+    // Type badge
+    var typeClass=d.type==='Standing Order'?'so':d.type==='Judicial Opinion'?'jo':d.type==='Administrative Order'?'ao':d.type==='Local Rules'?'lr':'pd';
+    var typeLabel=d.type||'Order';
+    // Consequence badge
+    var consq='';
+    if(d.consequence==='sanctions_attorney'||d.consequence==='sanctions_party') consq='<span class="tl-consq sn">SANCTIONS</span>';
+    else if(d.consequence==='warning') consq='<span class="tl-consq wn">WARNING</span>';
+    // Summary snippet
+    var summ=d.summary?d.summary.replace(/<[^>]+>/g,''):'';
+    html+='<div class="tl-entry">'+
+      '<div class="tl-date">'+fmtDate(d.date)+'</div>'+
+      '<div class="tl-dot"></div>'+
+      '<div class="tl-body">'+
+        '<div class="tl-header"><span class="tl-badge '+typeClass+'">'+esc(typeLabel)+'</span>'+consq+srcBadge(d.source)+'</div>'+
+        '<div class="tl-name">'+esc(name)+'</div>'+
+        (summ?'<div class="tl-summary">'+esc(summ)+'</div>':'')+
+        (d.link?'<a class="jd-link" href="'+esc(d.link)+'" target="_blank" rel="noopener">View Source &rarr;</a>':'<span style="font-size:12px;color:#94a3b8;">No link available</span>')+
+      '</div></div>';
+  });
+  html+='</div></div>';
+
+  p.innerHTML=html;
+}
+
+// Debounced hero search
+var searchTimer;
+function scrollToResults(){
+  document.getElementById('exFilters').scrollIntoView({behavior:'instant',block:'start'});
+}
+function clearAllFilters(){
+  document.getElementById('fType').value='';
+  document.getElementById('fState').value='';
+  document.getElementById('fJudge').value='';
+  document.getElementById('fOutcome').value='';
+  document.getElementById('fTag').value='';
+  document.getElementById('fDateFrom').value='';
+  document.getElementById('fDateTo').value='';
+  chips.clear();
+  document.querySelectorAll('.chip.on,.chip.on-red,.chip.on-orange').forEach(function(c){c.classList.remove('on','on-red','on-orange');});
+}
+document.getElementById('exHeroSearch').addEventListener('input',function(){
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(function(){
+    if(document.getElementById('exHeroSearch').value.trim()) clearAllFilters();
+    applyFilters();
+    scrollToResults();
+  },300);
+});
+document.getElementById('exHeroSearch').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    e.preventDefault();
+    clearTimeout(searchTimer);
+    if(document.getElementById('exHeroSearch').value.trim()) clearAllFilters();
+    applyFilters();
+    scrollToResults();
+  }
+});
+
+// Filter chips
+document.getElementById('exFilters').addEventListener('click',function(e){
+  var chip=e.target.closest('.chip');
+  if(!chip)return;
+  var f=chip.dataset.f;
+  if(chips.has(f)){chips.delete(f);chip.classList.remove('on','on-red','on-orange');}
+  else{chips.add(f);chip.classList.add(f==='prohibited'?'on-red':'on');}
+  applyFilters();
+});
+
+// Map toggle
+(function(){
+  var toggle=document.getElementById('mapToggle');
+  var map=document.getElementById('exMapWrap');
+  var arrow=document.getElementById('toggleArrow');
+  if(toggle&&map){
+    toggle.addEventListener('click',function(){
+      var collapsed=map.classList.toggle('collapsed');
+      arrow.classList.toggle('collapsed',collapsed);
+      try{sessionStorage.setItem('mapCollapsed',collapsed?'1':'0');}catch(e){}
+    });
+    try{if(sessionStorage.getItem('mapCollapsed')==='1'){map.classList.add('collapsed');arrow.classList.add('collapsed');}}catch(e){}
+  }
+})();
+
+// Loading state
+document.getElementById('exStats').innerHTML='<div style="padding:20px;color:#94a3b8;text-align:center;">Loading court orders...</div>';
+
+// Init
+fetch('/data/explorer_data.json')
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+  .then(function(data){
+    DATA=data;
+    initSearch();
+    renderStats();
+    buildMap();
+
+    // Populate filters
+    var stateSet={},tagSet={},judgeSet={};
+    var nStanding=0,nSanctions=0,nDisclose=0,nOpinions=0;
+    data.forEach(function(d){
+      if(d.state)stateSet[d.state]=1;
+      if(d.judge)judgeSet[d.judge]=1;
+      if(Array.isArray(d.applicableTo))d.applicableTo.forEach(function(t){tagSet[t]=1;});
+      if(d.type==='Standing Order'||d.type==='Local Rules'||d.type==='Administrative Order')nStanding++;
+      if(d.type==='Judicial Opinion')nOpinions++;
+      if(d.consequence==='sanctions_attorney'||d.consequence==='sanctions_party')nSanctions++;
+      if(d.reqs&&d.reqs.disclose)nDisclose++;
+    });
+    var sel=document.getElementById('fState');
+    Object.keys(stateSet).sort().forEach(function(s){
+      var o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);
+    });
+    var jsel=document.getElementById('fJudge');
+    Object.keys(judgeSet).sort().forEach(function(j){
+      var o=document.createElement('option');o.value=j;o.textContent=j;jsel.appendChild(o);
+    });
+    var tsel=document.getElementById('fTag');
+    Object.keys(tagSet).sort().forEach(function(t){
+      var o=document.createElement('option');o.value=t;o.textContent=t;tsel.appendChild(o);
+    });
+
+    // Category quick-filter buttons
+    var cats=[
+      {label:'All Orders',count:data.length,filter:function(){resetFilters();}},
+      {label:'Standing Orders',count:nStanding,filter:function(){resetFilters();document.getElementById('fType').value='Standing Order';}},
+      {label:'Opinions',count:nOpinions,filter:function(){resetFilters();document.getElementById('fType').value='Judicial Opinion';}},
+      {label:'Sanctions',count:nSanctions,filter:function(){resetFilters();document.getElementById('fOutcome').value='sanctions_attorney';}},
+      {label:'Requires Disclosure',count:nDisclose,filter:function(){resetFilters();chips.add('req_disclose');var c=document.querySelector('.chip[data-f="req_disclose"]');if(c)c.classList.add('on');}}
+    ];
+    var catEl=document.getElementById('exCategories');
+    catEl.innerHTML=cats.map(function(c,i){
+      return '<button class="cat-btn'+(i===0?' active':'')+'" data-cat="'+i+'">'+esc(c.label)+' <span class="cat-count">'+c.count+'</span></button>';
+    }).join('');
+    catEl.querySelectorAll('.cat-btn').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        catEl.querySelectorAll('.cat-btn').forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        cats[parseInt(btn.dataset.cat)].filter();
+        applyFilters();
+      });
+    });
+
+    function resetFilters(){
+      ['fType','fState','fJudge','fOutcome','fTag'].forEach(function(id){document.getElementById(id).value='';});
+      document.getElementById('fDateFrom').value='';
+      document.getElementById('fDateTo').value='';
+      chips.clear();
+      document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on','on-red','on-orange');});
+    }
+
+    // Wire up filters
+    ['fType','fState','fJudge','fOutcome','fTag'].forEach(function(id){
+      document.getElementById(id).addEventListener('change',function(){
+        catEl.querySelectorAll('.cat-btn').forEach(function(b){b.classList.remove('active');});
+        applyFilters();
+      });
+    });
+    document.getElementById('fDateFrom').addEventListener('change',applyFilters);
+    document.getElementById('fDateTo').addEventListener('change',applyFilters);
+
+    // Initial render
+    applyFilters();
+  })
+  .catch(function(err){
+    document.getElementById('exStats').innerHTML='<div style="padding:20px;color:#dc2626;text-align:center;">Failed to load data. Please refresh the page.</div>';
+    console.error('Data load error:',err);
+  });
+})();
+</script>
