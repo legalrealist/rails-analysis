@@ -1184,11 +1184,11 @@ function renderBarMap(){
       el.addEventListener('mouseleave',function(){tooltip.style.display='none';});
       el.addEventListener('click',function(){
         if(item){
-          var search=document.getElementById('barSearch');
-          search.value=item.name;
+          document.getElementById('barSearch').value='';
           document.getElementById('barStatusFilter').value='';
           applyBarFilters();
-          document.querySelector('.bar-list').scrollIntoView({behavior:'smooth',block:'start'});
+          var row=document.querySelector('.bar-item[data-slug="'+item.slug+'"]');
+          if(row){document.querySelectorAll('.bar-item.expanded').forEach(function(el){el.classList.remove('expanded');});row.classList.add('expanded');setTimeout(function(){row.scrollIntoView({block:'start'});},50);}
         }
       });
     })(abbr,item);
