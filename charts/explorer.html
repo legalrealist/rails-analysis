@@ -229,6 +229,17 @@ html { scroll-behavior: auto !important; }
 .ex .bar-item.expanded .bar-item-detail { display: block; }
 .ex .bar-detail-section { margin-top: 12px; }
 .ex .bar-detail-section h4 { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.ex .rule-card { background: #faf5ff; border: 1px solid #ddd6fe; border-radius: 6px; padding: 8px 12px; margin-bottom: 6px; }
+.ex .rule-card-header { display: flex; align-items: center; gap: 8px; cursor: default; }
+.ex .rule-card-header.has-note { cursor: pointer; }
+.ex .rule-card-num { font-weight: 600; color: #7c3aed; font-size: 13px; }
+.ex .rule-card-arrow { color: #a78bfa; font-size: 10px; transition: transform 0.15s; }
+.ex .rule-card.open .rule-card-arrow { transform: rotate(90deg); }
+.ex .rule-card-note { display: none; margin-top: 6px; padding-top: 6px; border-top: 1px solid #ede9fe; font-size: 12px; color: #4c1d95; line-height: 1.5; }
+.ex .rule-card.open .rule-card-note { display: block; }
+.ex .source-link { display: flex; align-items: baseline; gap: 6px; padding: 4px 0; font-size: 12px; }
+.ex .source-link a { color: #2563eb; word-break: break-all; }
+.ex .source-link .source-icon { color: #94a3b8; flex-shrink: 0; }
 .ex .status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
 .ex .status-formal { background: #1e40af; color: white; }
 .ex .status-informal { background: #60a5fa; color: white; }
@@ -1081,9 +1092,43 @@ function applyBarFilters(){
   updateBarMapHighlights();
 }
 
+function sourceLabel(url){
+  try{var h=new URL(url).hostname.replace(/^www\./,'');} catch(e){return url;}
+  var p=new URL(url).pathname.toLowerCase();
+  if(/bar\.org|barass/.test(h)) return 'Bar Association';
+  if(/ethics/.test(p)||/opinion/.test(p)) return 'Ethics Opinion';
+  if(/governor/.test(h)||/executive.order/.test(p)||/\beo\b/i.test(p)) return 'Executive Order';
+  if(/legislature|legis|akleg|alison/.test(h)||/bill|hcr|resolution/i.test(p)) return 'Legislation';
+  if(/court/.test(h)||/uscourt/.test(h)) return 'Court Order';
+  if(/supremecourt/.test(h)) return 'Supreme Court';
+  if(/americanbar\.org/.test(h)) return 'ABA';
+  if(/judiciary/.test(h)||/judicial/.test(h)||/jud/.test(h)) return 'Judiciary';
+  var parts=h.split('.');
+  return parts.length>2?parts.slice(-2).join('.'):h;
+}
+
 function renderBarList(){
   var list=document.getElementById('barList');
   list.innerHTML=barFiltered.map(function(d){
+    var notes=d.rule_notes||{};
+    var rulesHtml='';
+    if(d.key_rules&&d.key_rules.length){
+      rulesHtml='<div class="bar-detail-section"><h4>Key Rules</h4>'+d.key_rules.map(function(r){
+        var note=notes[r];
+        if(note){
+          return '<div class="rule-card" onclick="event.stopPropagation();this.classList.toggle(\u0027open\u0027)">'+
+            '<div class="rule-card-header has-note"><span class="rule-card-arrow">&#9654;</span><span class="rule-card-num">Rule '+esc(r)+'</span></div>'+
+            '<div class="rule-card-note">'+esc(note)+'</div></div>';
+        }
+        return '<div class="rule-card"><div class="rule-card-header"><span class="rule-card-num">Rule '+esc(r)+'</span></div></div>';
+      }).join('')+'</div>';
+    }
+    var srcHtml='';
+    if(d.primary_source_urls&&d.primary_source_urls.length){
+      srcHtml='<div class="bar-detail-section"><h4>Sources</h4>'+d.primary_source_urls.map(function(u){
+        return '<div class="source-link"><span class="source-icon">&#128279;</span><a href="'+esc(u)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+esc(sourceLabel(u))+'</a></div>';
+      }).join('')+'</div>';
+    }
     return '<div class="bar-item" data-slug="'+esc(d.slug)+'" onclick="this.classList.toggle(\u0027expanded\u0027)">'+
       '<div class="bar-item-header">'+
         '<div class="bar-item-state">'+esc(d.name)+'</div>'+
@@ -1094,13 +1139,11 @@ function renderBarList(){
       '<div class="bar-item-detail">'+
         (d.citation?'<div style="font-size:12px;color:#64748b;margin-bottom:8px;">'+esc(d.citation)+'</div>':'')+
         (d.summary?'<div>'+esc(d.summary)+'</div>':'')+
-        (d.key_rules&&d.key_rules.length?'<div class="bar-detail-section"><h4>Key Rules</h4><div class="tag-pills">'+d.key_rules.map(function(r){return '<span class="d-tag" style="background:#faf5ff;color:#7c3aed;border-color:#ddd6fe;">Rule '+esc(r)+'</span>';}).join('')+'</div></div>':'')+
+        rulesHtml+
         (d.key_authority?'<div class="bar-detail-section"><h4>Key Authority</h4><div>'+esc(d.key_authority)+'</div></div>':'')+
         (d.carrier_implications?'<div class="bar-detail-section"><h4>Carrier Implications</h4><div>'+esc(d.carrier_implications)+'</div></div>':'')+
-        '<div class="bar-detail-section" style="margin-top:12px;">'+
-          (d.primary_source_urls&&d.primary_source_urls.length?d.primary_source_urls.map(function(u){return '<a href="'+esc(u)+'" target="_blank" rel="noopener" style="font-size:12px;color:#2563eb;display:block;margin:2px 0;">Primary source</a>';}).join(''):'') +
-          '<a href="'+esc(d.url)+'" target="_blank" rel="noopener" style="font-size:12px;color:#94a3b8;">via Legal AI Governance</a>'+
-        '</div>'+
+        srcHtml+
+        '<div style="margin-top:8px;"><a href="'+esc(d.url)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:12px;color:#94a3b8;">via Legal AI Governance</a></div>'+
       '</div>'+
     '</div>';
   }).join('');
