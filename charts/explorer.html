@@ -99,6 +99,8 @@ html { scroll-behavior: auto !important; }
 .ex-detail { width: 50%; overflow-y: auto; padding: 24px; background: white; height: 100%; }
 
 .list-header { padding: 8px 20px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #475569; position: sticky; top: 0; z-index: 1; }
+.pg-btn { background: #2563eb; color: #fff; border: none; padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; margin-left: 6px; }
+.pg-btn:hover { background: #1d4ed8; }
 .ex-row { padding: 12px 20px; border-bottom: 1px solid #e2e8f0; cursor: pointer; transition: background 0.1s; }
 .ex-row:hover { background: #f0f4ff; }
 .ex-row.sel { background: #eff6ff; border-left: 3px solid #2563eb; }
@@ -362,6 +364,7 @@ html { scroll-behavior: auto !important; }
 var DATA_BASE = window.__DATA_BASE || './data';
 var DATA=[], filtered=[], selJudge=null, chips=new Set(), ms=null;
 var BAR_DATA=[], barFiltered=[], barMiniSearch=null;
+var listPage=0, PAGE_SIZE=100, lastGroups=[], lastIntlData=[];
 var STATUS_COLORS = { formal: '#1e40af', informal: '#60a5fa', pending: '#bfdbfe', none: '#e2e8f0' };
 var SANCTION_TYPE_LABELS = {
   monetary: '$ Monetary', dismissal: 'Dismissal', striking: 'Striking',
@@ -687,13 +690,7 @@ function applyFilters(){
   var groups = Object.values(judgeGroups);
   // Sort: judges with standing orders first, then those with sanctions/warnings, then by name
   groups.sort(function(a,b){
-    // Has standing orders > has sanctions > opinions only
-    var aPri = a.orders>0 ? 0 : (a.sanctions+a.warnings>0 ? 1 : 2);
-    var bPri = b.orders>0 ? 0 : (b.sanctions+b.warnings>0 ? 1 : 2);
-    if(aPri!==bPri) return aPri-bPri;
-    // Within same priority, more entries first
-    if(a.entries.length!==b.entries.length) return b.entries.length-a.entries.length;
-    return a.judge.localeCompare(b.judge);
+    return parseDate(b.entries[0].date) - parseDate(a.entries[0].date);
   });
 
   document.getElementById('exCount').textContent=(filtered.length+intlFiltered.length)+' of '+DATA.length;
@@ -721,6 +718,7 @@ function applyFilters(){
   jsel.value=curJudge;
 
   renderFilterChips();
+  listPage=0;
   renderList(groups, intlFiltered);
   if(groups.length>0){
     var found=false;
@@ -785,12 +783,20 @@ function renderFilterChips(){
 }
 
 function renderList(groups, intlData){
+  lastGroups=groups; lastIntlData=intlData||[];
   var el=document.getElementById('exList');
-  var show=groups.slice(0,500);
+  var start=listPage*PAGE_SIZE;
+  var show=groups.slice(start,start+PAGE_SIZE);
   var totalEntries=0;groups.forEach(function(g){totalEntries+=g.entries.length;});
-  var header='<div class="list-header"><strong>'+groups.length+'</strong> judges &middot; <strong>'+totalEntries+'</strong> entries <span style="float:right;color:#94a3b8;font-weight:400;">sorted by most entries</span></div>';
-  if(groups.length>500){
-    header+='<div style="padding:6px 20px;background:#fffbeb;border-bottom:1px solid #fde68a;font-size:12px;color:#92400e;">Showing first 500 of '+groups.length+' judges &mdash; narrow your filters to see all</div>';
+  var totalPages=Math.ceil(groups.length/PAGE_SIZE);
+  var header='<div class="list-header"><strong>'+groups.length+'</strong> judges &middot; <strong>'+totalEntries+'</strong> entries <span style="float:right;color:#94a3b8;font-weight:400;">sorted by most recent</span></div>';
+  if(totalPages>1){
+    header+='<div style="padding:6px 20px;background:#f0f4ff;border-bottom:1px solid #cbd5e1;font-size:13px;color:#334155;display:flex;align-items:center;justify-content:space-between;">'
+      +'<span>Page '+(listPage+1)+' of '+totalPages+' (showing '+(start+1)+'–'+Math.min(start+PAGE_SIZE,groups.length)+' of '+groups.length+')</span>'
+      +'<span>'
+      +(listPage>0?'<button class="pg-btn" id="pgPrev">&laquo; Previous</button>':'')
+      +(listPage<totalPages-1?'<button class="pg-btn" id="pgNext">Next &raquo;</button>':'')
+      +'</span></div>';
   }
   el.innerHTML=header+show.map(function(g){
     var counts=[];
@@ -875,6 +881,12 @@ function renderList(groups, intlData){
       if(window.innerWidth<=900){document.getElementById('exDetail').scrollIntoView({behavior:'instant',block:'start'});}
     });
   });
+
+  // Pagination buttons
+  var prevBtn=document.getElementById('pgPrev');
+  var nextBtn=document.getElementById('pgNext');
+  if(prevBtn) prevBtn.addEventListener('click',function(){ listPage--; renderList(lastGroups,lastIntlData); el.scrollTop=0; });
+  if(nextBtn) nextBtn.addEventListener('click',function(){ listPage++; renderList(lastGroups,lastIntlData); el.scrollTop=0; });
 }
 
 function renderJudgeDetail(group){
@@ -1063,6 +1075,7 @@ function applyBarFilters(){
     if(statusF&&d.status!==statusF)return false;
     return true;
   });
+  barFiltered.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
   document.getElementById('barCount').textContent=barFiltered.length+' of '+BAR_DATA.length;
   renderBarList();
   updateBarMapHighlights();
