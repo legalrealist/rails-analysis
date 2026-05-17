@@ -1184,8 +1184,11 @@ function renderBarMap(){
       el.addEventListener('mouseleave',function(){tooltip.style.display='none';});
       el.addEventListener('click',function(){
         if(item){
-          document.getElementById('barStatusFilter').value=item.status;
+          var search=document.getElementById('barSearch');
+          search.value=item.name;
+          document.getElementById('barStatusFilter').value='';
           applyBarFilters();
+          document.querySelector('.bar-list').scrollIntoView({behavior:'smooth',block:'start'});
         }
       });
     })(abbr,item);
