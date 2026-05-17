@@ -32,5 +32,11 @@ python3 scripts/analysis.py
 echo "4. Checking for unclassified sanctions..."
 python3 scripts/report_unclassified.py
 
+# 5. Sync data to charts/data for explorer
+echo "5. Syncing data to charts/data..."
+cp data/processed/explorer_data.json charts/data/
+cp data/processed/bar_opinions.json charts/data/
+echo "   Done."
+
 echo
 echo "=== Update complete ==="
