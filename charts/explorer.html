@@ -49,7 +49,8 @@ html { scroll-behavior: auto !important; }
 .ex-map-tooltip { position: absolute; background: #1e293b; color: white; padding: 6px 10px; border-radius: 6px; font-size: 12px; pointer-events: none; display: none; z-index: 10; white-space: nowrap; }
 
 /* Filters */
-.ex-filters { background: white; border-bottom: 1px solid #e2e8f0; padding: 0; position: sticky; top: 0; z-index: 10; }
+.ex-filters { background: white; border-bottom: 1px solid #e2e8f0; padding: 0; position: sticky; top: 0; z-index: 10; transition: box-shadow 0.2s; }
+.ex-filters.scrolled { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 .ex-filters-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 8px 24px; }
 .ex-filters-row + .ex-filters-row { border-top: 1px solid #f1f5f9; padding-top: 6px; padding-bottom: 8px; }
 .ex-filters select { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: white; }
@@ -71,12 +72,22 @@ html { scroll-behavior: auto !important; }
 /* Active filter chip bar */
 .ex-filter-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 24px; align-items: center; min-height: 0; background: white; position: sticky; top: 0; z-index: 9; border-bottom: 1px solid #e2e8f0; }
 .ex-filter-chips:empty { display: none; }
-.filter-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; font-size: 12px; color: #1e40af; cursor: pointer; transition: all 0.15s; }
+.filter-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; font-size: 12px; color: #1e40af; cursor: pointer; transition: all 0.15s; animation: chipIn 0.15s ease; }
+@keyframes chipIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 .filter-chip:hover { background: #dbeafe; }
 .filter-chip .fc-x { font-weight: 700; font-size: 14px; line-height: 1; opacity: 0.6; }
 .filter-chip .fc-x:hover { opacity: 1; }
 .filter-chip.clear-all { background: #fee2e2; border-color: #fecaca; color: #991b1b; }
 .filter-chip.clear-all:hover { background: #fecdd3; }
+
+/* More Filters toggle */
+.more-filters-btn { padding: 4px 12px; border-radius: 14px; font-size: 12px; font-weight: 500; border: 1.5px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; color: #64748b; }
+.more-filters-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+.more-filters-btn.open { background: #eff6ff; border-color: #3b82f6; color: #2563eb; }
+.more-filters-btn .mf-arrow { font-size: 10px; transition: transform 0.2s; }
+.more-filters-btn.open .mf-arrow { transform: rotate(180deg); }
+.more-filters-row { display: none !important; }
+.more-filters-row.open { display: flex !important; }
 
 /* Date range inputs */
 .ex-filters input[type="month"] { padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; color: #334155; background: white; }
@@ -97,13 +108,20 @@ html { scroll-behavior: auto !important; }
 .ex-left { width: 50%; overflow-y: auto; border-right: 1px solid #e2e8f0; height: 100%; }
 .ex-list { overflow-y: auto; height: 100%; background: #fafbfc; }
 .ex-detail { width: 50%; overflow-y: auto; padding: 24px; background: white; height: 100%; }
+.ex-detail > * { animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
 .list-header { padding: 8px 20px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #475569; position: sticky; top: 0; z-index: 1; }
 .pg-btn { background: #2563eb; color: #fff; border: none; padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; margin-left: 6px; }
 .pg-btn:hover { background: #1d4ed8; }
-.ex-row { padding: 12px 20px; border-bottom: 1px solid #e2e8f0; cursor: pointer; transition: background 0.1s; }
-.ex-row:hover { background: #f0f4ff; }
+.ex-row { padding: 12px 20px; border-bottom: 1px solid #e2e8f0; cursor: pointer; transition: background 0.15s, border-color 0.15s; border-left: 3px solid transparent; }
+.ex-row:hover { background: #f0f4ff; border-left-color: #93c5fd; }
 .ex-row.sel { background: #eff6ff; border-left: 3px solid #2563eb; }
+.ex-row.has-sanctions { border-left-color: #fca5a5; }
+.ex-row.has-sanctions:hover { border-left-color: #dc2626; }
+.ex-row.has-sanctions.sel { border-left-color: #dc2626; }
+.ex-row.has-order { border-left-color: #93c5fd; }
+.ex-row.has-order:hover { border-left-color: #2563eb; }
 .ex-row .r-top { display: flex; align-items: center; gap: 10px; }
 .ex-row .r-judge { font-size: 14px; font-weight: 500; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ex-row .r-counts { font-size: 12px; color: #64748b; flex-shrink: 0; }
@@ -284,7 +302,7 @@ html { scroll-behavior: auto !important; }
 <div class="ex-hero">
   <div class="search-wrap">
     <span class="search-icon">&#x1F50D;</span>
-    <input class="hero-search" type="text" id="exHeroSearch" placeholder="Search judges, courts, or states..." autocomplete="off">
+    <input class="hero-search" type="text" id="exHeroSearch" placeholder="Search judges, courts, states, or cases..." autocomplete="off">
     <button id="heroSearchClear" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;display:none;padding:4px 8px;" title="Clear search">&times;</button>
   </div>
 </div>
@@ -312,11 +330,14 @@ html { scroll-behavior: auto !important; }
     <select id="fType"><option value="">All Types</option><option value="Standing Order">Standing Orders</option><option value="Local Rules">Local Rules</option><option value="Administrative Order">Admin Orders</option><option value="Judicial Opinion">Opinions</option></select>
     <select id="fState"><option value="">All States</option></select>
     <select id="fJudge"><option value="">Filter by judge...</option></select>
+    <button class="more-filters-btn" id="moreFiltersBtn" onclick="this.classList.toggle('open');document.getElementById('moreFiltersRow').classList.toggle('open');">More Filters <span class="mf-arrow">&#9662;</span></button>
+    <input type="hidden" id="fDateFrom">
+    <input type="hidden" id="fDateTo">
+  </div>
+  <div class="ex-filters-row more-filters-row" id="moreFiltersRow">
     <select id="fOutcome"><option value="">All Outcomes</option><option value="sanctions_attorney">Sanctions (Attorney)</option><option value="sanctions_party">Sanctions (Party)</option><option value="warning">Warning</option><option value="none">No Consequence</option></select>
     <select id="fTag"><option value="">All Sectors</option></select>
     <select id="fSanctionType"><option value="">All Sanction Types</option></select>
-    <input type="hidden" id="fDateFrom">
-    <input type="hidden" id="fDateTo">
   </div>
   <div class="ex-filters-row">
     <span class="chip" data-f="req_disclose">Requires Disclosure</span>
@@ -333,7 +354,16 @@ html { scroll-behavior: auto !important; }
   <div class="ex-left">
     <div class="ex-list" id="exList"></div>
   </div>
-  <div class="ex-detail" id="exDetail"><div class="d-empty">Select a judge from the list or use search to view details</div></div>
+  <div class="ex-detail" id="exDetail"><div class="d-empty">
+    <div style="font-size:32px;margin-bottom:12px;opacity:0.3">&#x2696;</div>
+    <div style="font-size:15px;margin-bottom:16px">Search for a judge or click from the list</div>
+    <div style="text-align:left;max-width:280px;margin:0 auto;font-size:13px;color:#94a3b8;line-height:1.8">
+      <div><strong style="color:#2563eb">175</strong> standing orders tracked</div>
+      <div><strong style="color:#dc2626">201</strong> sanctions cases documented</div>
+      <div><strong style="color:#475569">59</strong> jurisdictions covered</div>
+      <div style="margin-top:8px;font-size:12px;color:#cbd5e1">Search by judge, court, state, or case name</div>
+    </div>
+  </div></div>
 </div>
 
 <div class="ex-footer">
@@ -670,6 +700,8 @@ function renderStats(){
 }
 
 function applyFilters(){
+  var mfBtn=document.getElementById('moreFiltersBtn'),mfRow=document.getElementById('moreFiltersRow');
+  if(mfBtn&&mfRow){var hasMore=document.getElementById('fOutcome').value||document.getElementById('fTag').value||document.getElementById('fSanctionType').value;if(hasMore){mfBtn.classList.add('open');mfRow.classList.add('open');}}
   var typeF=document.getElementById('fType').value;
   var stateF=document.getElementById('fState').value;
   var judgeF=document.getElementById('fJudge').value;
@@ -771,7 +803,7 @@ function applyFilters(){
         if(groups[i].judge===selJudge){renderJudgeDetail(groups[i]);found=true;break;}
       }
     }
-    if(!found){document.getElementById('exDetail').innerHTML='<div class="d-empty">Select a judge from the list or use search to view details</div>';selJudge=null;}
+    if(!found){document.getElementById('exDetail').innerHTML='<div class="d-empty"><div style="font-size:32px;margin-bottom:12px;opacity:0.3">&#x2696;</div><div style="font-size:15px;margin-bottom:16px">Search for a judge or click from the list</div><div style="text-align:left;max-width:280px;margin:0 auto;font-size:13px;color:#94a3b8;line-height:1.8"><div><strong style="color:#2563eb">175</strong> standing orders tracked</div><div><strong style="color:#dc2626">201</strong> sanctions cases documented</div><div><strong style="color:#475569">59</strong> jurisdictions covered</div><div style="margin-top:8px;font-size:12px;color:#cbd5e1">Search by judge, court, state, or case name</div></div></div>';selJudge=null;}
   } else {
     selJudge=null;
     document.getElementById('exDetail').innerHTML='<div class="d-empty">No results match your filters</div>';
@@ -850,10 +882,10 @@ function renderList(groups, intlData){
   }
   el.innerHTML=header+show.map(function(g){
     var counts=[];
-    if(g.orders) counts.push(g.orders+' order'+(g.orders>1?'s':''));
+    if(g.orders) counts.push('<span style="color:#2563eb">'+g.orders+' order'+(g.orders>1?'s':'')+'</span>');
     if(g.opinions) counts.push(g.opinions+' opinion'+(g.opinions>1?'s':''));
-    if(g.sanctions) counts.push(g.sanctions+' sanction'+(g.sanctions>1?'s':''));
-    if(g.warnings) counts.push(g.warnings+' warning'+(g.warnings>1?'s':''));
+    if(g.sanctions) counts.push('<span style="color:#dc2626;font-weight:600">'+g.sanctions+' sanction'+(g.sanctions>1?'s':'')+'</span>');
+    if(g.warnings) counts.push('<span style="color:#ea580c">'+g.warnings+' warning'+(g.warnings>1?'s':'')+'</span>');
     var countStr=counts.join(' \u00b7 ');var hasStandingOrder=g.entries.some(function(e){return e.type==='Standing Order'||e.type==='Local Rules'||e.type==='Administrative Order';});
     var rp='';
     var rr=g.reqs;
@@ -866,10 +898,11 @@ function renderList(groups, intlData){
     if(rr.prohibited)rp+='<span class="rq rq-prohibit">Prohibited</span>';
     if(rr.evidence)rp+='<span class="rq rq-disclose">AI Evidence</span>';
     var preview=snippetSummary(g.entries[0].summary||g.entries[0].name||'',90);
-    return '<div class="ex-row'+(g.judge===selJudge?' sel':'')+'" data-judge="'+esc(g.judge)+'">'+
+    var rowCls='ex-row'+(g.judge===selJudge?' sel':'')+(g.sanctions?' has-sanctions':(hasStandingOrder?' has-order':''));
+    return '<div class="'+rowCls+'" data-judge="'+esc(g.judge)+'">'+
       '<div class="r-top">'+
       '<span class="r-judge">'+esc(g.judge.replace(/\s*\|\s*/g,', '))+'</span>'+
-      '<span class="r-counts">'+esc(countStr)+'</span>'+
+      '<span class="r-counts">'+countStr+'</span>'+
       '</div>'+
       '<div class="r-meta"><span>'+esc(g.court)+'</span><span>'+esc(g.state)+'</span></div>'+
       (preview?'<div class="r-preview">'+esc(preview)+'</div>':'')+
@@ -1106,7 +1139,7 @@ document.getElementById('exFilters').addEventListener('click',function(e){
       arrow.classList.toggle('collapsed',collapsed);
       try{sessionStorage.setItem('mapCollapsed',collapsed?'1':'0');}catch(e){}
     });
-    try{if(sessionStorage.getItem('mapCollapsed')==='1'){map.classList.add('collapsed');arrow.classList.add('collapsed');}}catch(e){}
+    try{var mc=sessionStorage.getItem('mapCollapsed');if(mc!=='0'){map.classList.add('collapsed');arrow.classList.add('collapsed');}}catch(e){}
   }
 })();
 
@@ -1406,6 +1439,21 @@ fetch(DATA_BASE + '/explorer_data.json')
   });
 
 
+
+// Sticky filter bar shadow
+(function(){
+  var filters=document.getElementById('exFilters');
+  if(filters){
+    var parent=filters.parentElement;
+    function checkScroll(){
+      var rect=filters.getBoundingClientRect();
+      if(rect.top<=0&&parent.scrollTop>0){filters.classList.add('scrolled');}
+      else{filters.classList.remove('scrolled');}
+    }
+    window.addEventListener('scroll',checkScroll,{passive:true});
+    if(parent!==document.body)parent.addEventListener('scroll',checkScroll,{passive:true});
+  }
+})();
 
 // URL hash state for sharing
 function encodeHashState(){
