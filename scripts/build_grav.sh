@@ -31,7 +31,9 @@ metadata:
 <script>window.__DATA_BASE = '/assets/data';</script>
 FRONTMATTER
 
-sed -n '/<!-- GRAV-EXTRACT-START -->/,/<!-- GRAV-EXTRACT-END -->/p' "$SRC" >> "$OUT"
+sed -n '/<!-- GRAV-EXTRACT-START -->/,/<!-- GRAV-EXTRACT-END -->/p' "$SRC" \
+  | sed 's|<script src="minisearch.min.js"></script>|<script src="https://cdn.jsdelivr.net/npm/minisearch@7.1.1/dist/umd/index.min.js"></script>|' \
+  >> "$OUT"
 
 ASSETS_DIR="$(dirname "$OUT")/../../../../assets/data"
 mkdir -p "$ASSETS_DIR"
