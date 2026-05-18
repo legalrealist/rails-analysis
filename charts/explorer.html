@@ -12,17 +12,33 @@ html { scroll-behavior: auto !important; }
 .ex * { box-sizing: border-box; margin: 0; padding: 0; }
 .ex { font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; color: #3a414e; }
 
+/* Critical layout — inline CSS to avoid Tailwind CDN race conditions */
+.ex-bipanel { display: flex; flex-direction: row; position: sticky; top: var(--nav-h, 0px); height: calc(100dvh - var(--nav-h, 0px)); overflow: hidden; border-top: 2px solid #cbd5e1; }
+.ex-left { width: 50%; overflow-y: auto; border-right: 1px solid #e2e8f0; height: 100%; display: flex; flex-direction: column; }
+.ex-detail { width: 50%; overflow-y: auto; padding: 24px; background: white; height: 100%; }
+.ex-filters { position: sticky; top: 0; z-index: 10; background: white; border-bottom: 1px solid #e2e8f0; transition: box-shadow 0.2s; }
+.ex-filters.scrolled { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.ex-filter-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 24px; align-items: center; background: white; border-bottom: 1px solid #e2e8f0; }
+.ex-filter-chips:empty { display: none; }
+.ex-list { flex: 1; overflow-y: auto; background: #f8fafc; }
+.ex-hero { background: #1e293b; padding: 84px 24px 16px; text-align: center; }
+.ex-stats { display: flex; justify-content: center; gap: 32px; padding: 16px 24px; background: white; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+.ex-footer { display: none; padding: 12px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; text-align: center; }
+.ex-download { text-align: center; padding: 6px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #64748b; }
+.ex-download a { color: #2563eb; cursor: pointer; margin: 0 6px; text-decoration: none; font-weight: 500; }
+.ex-download a:hover { text-decoration: underline; }
+@media (max-width: 900px) {
+  .ex-bipanel { flex-direction: column; height: auto; overflow: visible; position: static; }
+  .ex-left, .ex-detail { width: 100%; height: auto; }
+  .ex-list { max-height: 50vh; }
+}
+
 /* Hero — search bar only */
-.ex-hero { background: #1e293b; padding: 76px 24px 16px; text-align: center; }
-.ex-hero .search-wrap { max-width: 700px; margin: 0 auto; position: relative; }
 .ex-hero .hero-search { width: 100%; padding: 14px 20px 14px 48px; border: 2px solid #475569; border-radius: 10px; font-size: 18px; background: #0f172a; color: white; outline: none; transition: border-color 0.2s; }
 .ex-hero .hero-search::placeholder { color: #64748b; }
 .ex-hero .hero-search:focus { border-color: #3b82f6; }
-.ex-hero .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 18px; }
 
 /* Stats bar */
-.ex-stats { display: flex; justify-content: center; gap: 24px; padding: 10px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
-.ex-stat { text-align: center; }
 .ex-stat .num { font-size: 18px; font-weight: 700; color: #3a414e; }
 .ex-stat .label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
 .ex-stat.warn .num { color: #ea580c; }
@@ -49,8 +65,6 @@ html { scroll-behavior: auto !important; }
 .ex-map-tooltip { position: absolute; background: #1e293b; color: white; padding: 6px 10px; border-radius: 6px; font-size: 12px; pointer-events: none; display: none; z-index: 10; white-space: nowrap; }
 
 /* Filters */
-.ex-filters { background: white; border-bottom: 1px solid #e2e8f0; padding: 0; position: sticky; top: 0; z-index: 10; transition: box-shadow 0.2s; }
-.ex-filters.scrolled { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 .ex-filters-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 8px 24px; }
 .ex-filters-row + .ex-filters-row { border-top: 1px solid #f1f5f9; padding-top: 6px; padding-bottom: 8px; }
 .ex-filters select { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: white; }
@@ -70,8 +84,6 @@ html { scroll-behavior: auto !important; }
 .cat-btn.active .cat-count { background: rgba(255,255,255,0.25); }
 
 /* Active filter chip bar */
-.ex-filter-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 24px; align-items: center; min-height: 0; background: white; position: sticky; top: 0; z-index: 9; border-bottom: 1px solid #e2e8f0; }
-.ex-filter-chips:empty { display: none; }
 .filter-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; font-size: 12px; color: #1e40af; cursor: pointer; transition: all 0.15s; animation: chipIn 0.15s ease; }
 @keyframes chipIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 .filter-chip:hover { background: #dbeafe; }
@@ -103,11 +115,7 @@ html { scroll-behavior: auto !important; }
 .rq.rq-tool { background: #f3e8ff; color: #6b21a8; }
 .rq.rq-prohibit { background: #fee2e2; color: #991b1b; }
 
-/* Bi-panel layout (list + detail) */
-.ex-bipanel { display: flex; height: calc(100vh - 60px); overflow: hidden; border-top: 2px solid #cbd5e1; }
-.ex-left { width: 50%; overflow-y: auto; border-right: 1px solid #e2e8f0; height: 100%; }
-.ex-list { overflow-y: auto; height: 100%; background: #fafbfc; }
-.ex-detail { width: 50%; overflow-y: auto; padding: 24px; background: white; height: 100%; }
+/* Bi-panel layout — Tailwind handles structure, CSS handles animations */
 .ex-detail > * { animation: fadeIn 0.2s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -127,10 +135,10 @@ html { scroll-behavior: auto !important; }
 .ex-row .r-counts { font-size: 12px; color: #64748b; flex-shrink: 0; }
 .ex-row .r-meta { font-size: 12px; color: #64748b; margin-top: 4px; display: flex; gap: 8px; }
 .ex-row .r-preview { font-size: 12px; color: #94a3b8; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ex-row .r-reqs { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.ex-row .r-reqs { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; max-height: 22px; overflow: hidden; }
 
 /* Detail panel */
-.d-empty { color: #94a3b8; text-align: center; margin-top: 80px; font-size: 15px; }
+.d-empty { color: #94a3b8; text-align: center; margin-top: 15vh; font-size: 15px; }
 .d-back { display: none; padding: 8px 16px; background: #f1f5f9; border: none; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #2563eb; cursor: pointer; width: 100%; text-align: left; }
 .d-back:hover { background: #e2e8f0; }
 .d-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; line-height: 1.4; }
@@ -190,21 +198,16 @@ html { scroll-behavior: auto !important; }
 .tl-link:hover { text-decoration: underline; }
 
 /* Footer */
-.ex-footer { padding: 12px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; text-align: center; }
 .ex-footer a { color: #2563eb; text-decoration: none; }
 .ex-footer a:hover { text-decoration: underline; }
 
 .hidden { display: none !important; }
 
 @media (max-width: 900px) {
-  .ex-bipanel { flex-direction: column; height: auto; overflow: visible; }
-  .ex-left, .ex-detail { width: 100%; height: auto; }
   .ex-list { max-height: 50vh; }
-  .ex-stats { gap: 16px; }
   .ex-stat .num { font-size: 22px; }
   .ex-categories { gap: 6px; padding: 8px 16px 0; }
   .cat-btn { font-size: 12px; padding: 4px 10px; }
-  .ex-filter-chips { padding: 0 16px; }
   .d-back { display: block !important; }
 }
 
@@ -300,8 +303,8 @@ html { scroll-behavior: auto !important; }
 <div class="ex" id="exApp">
 
 <div class="ex-hero">
-  <div class="search-wrap">
-    <span class="search-icon">&#x1F50D;</span>
+  <div class="search-wrap" style="max-width:700px;margin:0 auto;position:relative;">
+    <span class="search-icon" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#64748b;font-size:18px;">&#x1F50D;</span>
     <input class="hero-search" type="text" id="exHeroSearch" placeholder="Search judges, courts, states, or cases..." autocomplete="off">
     <button id="heroSearchClear" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;display:none;padding:4px 8px;" title="Clear search">&times;</button>
   </div>
@@ -312,6 +315,7 @@ html { scroll-behavior: auto !important; }
 </div>
 <div id="judgesView" class="judges-view active">
 <div class="ex-stats" id="exStats" style="display:none;"></div>
+<div class="ex-download" id="exDownload" style="display:none;">Download data: <a onclick="downloadData('csv')">&#x1F4CB; CSV</a> &middot; <a onclick="downloadData('json')">&#x1F4BE; JSON</a></div>
 
 <div class="map-toggle" id="mapToggle"><span class="toggle-arrow" id="toggleArrow">&#9660;</span> AI Court Orders by State</div>
 <div class="ex-map-wrap" id="exMapWrap">
@@ -324,34 +328,33 @@ html { scroll-behavior: auto !important; }
     <span>More orders</span>
   </div>
 </div>
-<div class="ex-filters" id="exFilters">
-  <div class="ex-filters-row">
-    <div class="ex-categories" id="exCategories"></div>
-    <select id="fType"><option value="">All Types</option><option value="Standing Order">Standing Orders</option><option value="Local Rules">Local Rules</option><option value="Administrative Order">Admin Orders</option><option value="Judicial Opinion">Opinions</option></select>
-    <select id="fState"><option value="">All States</option></select>
-    <select id="fJudge"><option value="">Filter by judge...</option></select>
-    <button class="more-filters-btn" id="moreFiltersBtn" onclick="this.classList.toggle('open');document.getElementById('moreFiltersRow').classList.toggle('open');">More Filters <span class="mf-arrow">&#9662;</span></button>
-    <input type="hidden" id="fDateFrom">
-    <input type="hidden" id="fDateTo">
-  </div>
-  <div class="ex-filters-row more-filters-row" id="moreFiltersRow">
-    <select id="fOutcome"><option value="">All Outcomes</option><option value="sanctions_attorney">Sanctions (Attorney)</option><option value="sanctions_party">Sanctions (Party)</option><option value="warning">Warning</option><option value="none">No Consequence</option></select>
-    <select id="fTag"><option value="">All Sectors</option></select>
-    <select id="fSanctionType"><option value="">All Sanction Types</option></select>
-  </div>
-  <div class="ex-filters-row">
-    <span class="chip" data-f="req_disclose">Requires Disclosure</span>
-    <span class="chip" data-f="prohibited">Prohibits AI</span>
-    <span class="chip" data-f="at_filings">Filings/Drafting</span>
-    <span class="chip" data-f="at_research">Research</span>
-    <span class="chip" data-f="at_consequences">Consequences</span>
-    <span class="ex-count" id="exCount"></span>
-  </div>
-</div>
-<div class="ex-filter-chips" id="exFilterChips"></div>
-
 <div class="ex-bipanel" id="exBipanel">
   <div class="ex-left">
+    <div class="ex-filters" id="exFilters">
+      <div class="ex-filters-row">
+        <div class="ex-categories" id="exCategories"></div>
+        <select id="fType"><option value="">All Types</option><option value="Standing Order">Standing Orders</option><option value="Local Rules">Local Rules</option><option value="Administrative Order">Admin Orders</option><option value="Judicial Opinion">Opinions</option></select>
+        <select id="fState"><option value="">All States</option></select>
+        <select id="fJudge"><option value="">Filter by judge...</option></select>
+        <button class="more-filters-btn" id="moreFiltersBtn" onclick="this.classList.toggle('open');document.getElementById('moreFiltersRow').classList.toggle('open');">More Filters <span class="mf-arrow">&#9662;</span></button>
+        <input type="hidden" id="fDateFrom">
+        <input type="hidden" id="fDateTo">
+      </div>
+      <div class="ex-filters-row more-filters-row" id="moreFiltersRow">
+        <select id="fOutcome"><option value="">All Outcomes</option><option value="sanctions_attorney">Sanctions (Attorney)</option><option value="sanctions_party">Sanctions (Party)</option><option value="warning">Warning</option><option value="none">No Consequence</option></select>
+        <select id="fTag"><option value="">All Sectors</option></select>
+        <select id="fSanctionType"><option value="">All Sanction Types</option></select>
+      </div>
+      <div class="ex-filters-row">
+        <span class="chip" data-f="req_disclose" title="AI use is permitted but must be disclosed">Requires Disclosure</span>
+        <span class="chip" data-f="prohibited" title="Court prohibits AI use for filings">Prohibits AI</span>
+        <span class="chip" data-f="at_filings">Filings/Drafting</span>
+        <span class="chip" data-f="at_research">Research</span>
+        <span class="chip" data-f="at_consequences">Consequences</span>
+        <span class="ex-count" id="exCount"></span>
+      </div>
+    </div>
+    <div class="ex-filter-chips" id="exFilterChips"></div>
     <div class="ex-list" id="exList"></div>
   </div>
   <div class="ex-detail" id="exDetail"><div class="d-empty">
@@ -443,7 +446,7 @@ var POSTAL_STATE = {};
 for(var sn in STATE_POSTAL){ POSTAL_STATE[STATE_POSTAL[sn]] = sn; }
 
 var REQ_ACTIONS = {
-  disclose: {icon:'&#128221;', label:'Disclose AI Use', action:'Include a statement in your filing disclosing that AI tools were used.'},
+  disclose: {icon:'&#128221;', label:'Disclose AI Use', action:'AI use is permitted, but you must include a statement disclosing that AI tools were used.'},
   tool: {icon:'&#128295;', label:'Name the Tool', action:'Identify the specific AI tool(s) used by name (e.g., ChatGPT, CoCounsel).'},
   how: {icon:'&#128196;', label:'Describe How Used', action:'Explain how AI assisted in preparing the filing.'},
   sections: {icon:'&#128204;', label:'ID AI-Assisted Sections', action:'Mark which sections were drafted or assisted by AI.'},
@@ -452,7 +455,7 @@ var REQ_ACTIONS = {
   certify_if_ai: {icon:'&#9997;&#65039;', label:'Certify If AI Used', action:'Sign a certification that AI-generated content has been verified.'},
   prompts: {icon:'&#128190;', label:'Retain Prompts', action:'Preserve all AI prompts and outputs; produce on request.'},
   proprietary: {icon:'&#128274;', label:'Protect Proprietary Info', action:'Do not input confidential or privileged information into AI tools.'},
-  prohibited: {icon:'&#128683;', label:'AI Prohibited', action:'AI tools are prohibited for filings in this court.'},
+  prohibited: {icon:'&#128683;', label:'AI Prohibited', action:'This court prohibits the use of AI tools for drafting or preparing filings.'},
   warning: {icon:'&#9888;&#65039;', label:'Warning Issued', action:'The court has warned about AI use; exercise heightened caution.'},
   rules: {icon:'&#128214;', label:'Cites Existing Rules', action:'References existing professional conduct rules as governing AI use.'},
   evidence: {icon:'&#128269;', label:'Disclose AI Evidence', action:'Disclose when AI-generated content is submitted as evidence.'}
@@ -538,13 +541,13 @@ function doSearch(q){
 
 function reqPills(d){
   var r=d.reqs||{}, pills=[];
-  if(r.disclose)pills.push('<span class="rq rq-disclose">Disclose</span>');
+  if(r.disclose)pills.push('<span class="rq rq-disclose" title="AI use permitted, disclosure required">Disclose</span>');
   if(r.tool)pills.push('<span class="rq rq-tool">Name Tool</span>');
   if(r.sections)pills.push('<span class="rq rq-sections">ID Sections</span>');
   if(r.certify_all||r.certify_if_ai)pills.push('<span class="rq rq-certify">Certify</span>');
   if(r.verify)pills.push('<span class="rq rq-verify">Verify</span>');
   if(r.prompts)pills.push('<span class="rq rq-prompts">Retain Prompts</span>');
-  if(r.prohibited)pills.push('<span class="rq rq-prohibit">Prohibited</span>');
+  if(r.prohibited)pills.push('<span class="rq rq-prohibit" title="Court prohibits AI use for filings">Prohibited</span>');
   if(r.evidence)pills.push('<span class="rq rq-disclose">AI Evidence</span>');
   return pills.join('');
 }
@@ -678,17 +681,42 @@ function buildMap(){
   });
 }
 
+function csvEsc(s){if(!s)return '';s=String(s).replace(/"/g,'""');if(s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0)s='"'+s+'"';return s;}
+window.downloadData=downloadData;
+function downloadData(fmt){
+  var blob,name;
+  if(fmt==='json'){
+    blob=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'});
+    name='ai-court-orders.json';
+  } else {
+    var headers=['id','judge','court','state','date','type','ai_type','applies_to','sanctions_outcome','sanction_types','amount_awarded','reqs','summary','source','link'];
+    var rows=[headers.join(',')];
+    DATA.forEach(function(d){
+      var st=d.sanction_types||{};
+      var types=(st.types||[]).join(';');
+      var amt=st.amount_awarded?'$'+st.amount_awarded:'';
+      var reqs=Object.keys(d.reqs||{}).join(';');
+      var row=[d.id,csvEsc(d.judge),csvEsc(d.court),csvEsc(d.state),d.date,d.type,d.ai_type,csvEsc(d.applies_to),d.sanctions_outcome,types,amt,reqs,csvEsc((d.summary||'').replace(/<[^>]*>/g,'')),d.source,csvEsc(d.link)];
+      rows.push(row.join(','));
+    });
+    blob=new Blob([rows.join('\n')],{type:'text/csv'});
+    name='ai-court-orders.csv';
+  }
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);
+}
+
 function renderStats(){
   var so=0,op=0,sn=0,wn=0,states=new Set();
   DATA.forEach(function(d){
     if(d.type==='Standing Order'||d.type==='Local Rules'||d.type==='Administrative Order')so++;
     if(d.type==='Judicial Opinion')op++;
-    if(d.consequence==='sanctions_attorney'||d.consequence==='sanctions_party')sn++;
-    if(d.consequence==='warning')wn++;
+    if(d.sanctions_outcome==='sanctions_attorney'||d.sanctions_outcome==='sanctions_party')sn++;
+    if(d.sanctions_outcome==='warning')wn++;
     if(d.state)states.add(d.state);
   });
   document.getElementById('judgesTabBtn').textContent='Judges ('+DATA.length+')';
   document.getElementById('exStats').style.display='flex';
+  var dl=document.getElementById('exDownload');if(dl)dl.style.display='block';
   var latestDate='';DATA.forEach(function(d){if(d.date&&d.date>latestDate)latestDate=d.date;});
   if(latestDate){var ud=document.getElementById('exLastUpdated');if(ud)ud.textContent='Data current through '+fmtDate(latestDate);}
   document.getElementById('exStats').innerHTML=
@@ -717,8 +745,8 @@ function applyFilters(){
     if(typeF&&d.type!==typeF)return false;
     if(stateF&&d.state!==stateF)return false;
     if(judgeF&&(d.judge||'')!==judgeF)return false;
-    if(outcomeF==='none'&&d.consequence)return false;
-    if(outcomeF&&outcomeF!=='none'&&d.consequence!==outcomeF)return false;
+    if(outcomeF==='none'&&d.sanctions_outcome)return false;
+    if(outcomeF&&outcomeF!=='none'&&d.sanctions_outcome!==outcomeF)return false;
     if(tagF&&!(Array.isArray(d.applicableTo)&&d.applicableTo.indexOf(tagF)>=0))return false;
     var stF=document.getElementById('fSanctionType').value;
     if(stF&&!(d.sanction_types&&d.sanction_types.types&&d.sanction_types.types.indexOf(stF)>=0))return false;
@@ -760,8 +788,8 @@ function applyFilters(){
     for(var k in r){ if(r[k]) g.reqs[k] = true; }
     if(d.type==='Standing Order'||d.type==='Local Rules'||d.type==='Administrative Order') g.orders++;
     if(d.type==='Judicial Opinion') g.opinions++;
-    if(d.consequence==='sanctions_attorney'||d.consequence==='sanctions_party') g.sanctions++;
-    if(d.consequence==='warning') g.warnings++;
+    if(d.sanctions_outcome==='sanctions_attorney'||d.sanctions_outcome==='sanctions_party') g.sanctions++;
+    if(d.sanctions_outcome==='warning') g.warnings++;
   });
   var groups = Object.values(judgeGroups);
   // Sort: judges with standing orders first, then those with sanctions/warnings, then by name
@@ -778,8 +806,8 @@ function applyFilters(){
   DATA.filter(function(d){
     if(typeF&&d.type!==typeF)return false;
     if(stateF&&d.state!==stateF)return false;
-    if(outcomeF==='none'&&d.consequence)return false;
-    if(outcomeF&&outcomeF!=='none'&&d.consequence!==outcomeF)return false;
+    if(outcomeF==='none'&&d.sanctions_outcome)return false;
+    if(outcomeF&&outcomeF!=='none'&&d.sanctions_outcome!==outcomeF)return false;
     if(tagF&&!(Array.isArray(d.applicableTo)&&d.applicableTo.indexOf(tagF)>=0))return false;
     var stF=document.getElementById('fSanctionType').value;
     if(stF&&!(d.sanction_types&&d.sanction_types.types&&d.sanction_types.types.indexOf(stF)>=0))return false;
@@ -889,13 +917,13 @@ function renderList(groups, intlData){
     var countStr=counts.join(' \u00b7 ');var hasStandingOrder=g.entries.some(function(e){return e.type==='Standing Order'||e.type==='Local Rules'||e.type==='Administrative Order';});
     var rp='';
     var rr=g.reqs;
-    if(rr.disclose)rp+='<span class="rq rq-disclose">Disclose</span>';
+    if(rr.disclose)rp+='<span class="rq rq-disclose" title="AI use permitted, disclosure required">Disclose</span>';
     if(rr.tool)rp+='<span class="rq rq-tool">Name Tool</span>';
     if(rr.sections)rp+='<span class="rq rq-sections">ID Sections</span>';
     if(rr.certify_all||rr.certify_if_ai)rp+='<span class="rq rq-certify">Certify</span>';
     if(rr.verify)rp+='<span class="rq rq-verify">Verify</span>';
     if(rr.prompts)rp+='<span class="rq rq-prompts">Retain Prompts</span>';
-    if(rr.prohibited)rp+='<span class="rq rq-prohibit">Prohibited</span>';
+    if(rr.prohibited)rp+='<span class="rq rq-prohibit" title="Court prohibits AI use for filings">Prohibited</span>';
     if(rr.evidence)rp+='<span class="rq rq-disclose">AI Evidence</span>';
     var preview=snippetSummary(g.entries[0].summary||g.entries[0].name||'',90);
     var rowCls='ex-row'+(g.judge===selJudge?' sel':'')+(g.sanctions?' has-sanctions':(hasStandingOrder?' has-order':''));
@@ -1020,8 +1048,8 @@ function renderJudgeDetail(group){
     var typeLabel=d.type||'Order';
     // Consequence badge
     var consq='';
-    if(d.consequence==='sanctions_attorney'||d.consequence==='sanctions_party') consq='<span class="tl-consq sn">SANCTIONS</span>';
-    else if(d.consequence==='warning') consq='<span class="tl-consq wn">WARNING</span>';
+    if(d.sanctions_outcome==='sanctions_attorney'||d.sanctions_outcome==='sanctions_party') consq='<span class="tl-consq sn">SANCTIONS</span>';
+    else if(d.sanctions_outcome==='warning') consq='<span class="tl-consq wn">WARNING</span>';
     // Sanction type badges
     var stBadges='';
     if(d.sanction_types&&d.sanction_types.types){
@@ -1056,8 +1084,8 @@ function renderJudgeDetail(group){
     var amountEntries=stEntries.filter(function(e){return e.sanction_types.amount_sought||e.sanction_types.amount_awarded;});
     if(amountEntries.length>0){
       amountEntries.forEach(function(e){
-        if(e.sanction_types.amount_sought) html+='<div style="margin-top:8px;font-size:13px;"><strong>Amount Sought:</strong> <span class="amount-tag">'+esc(e.sanction_types.amount_sought)+'</span></div>';
-        if(e.sanction_types.amount_awarded) html+='<div style="margin-top:4px;font-size:13px;"><strong>Amount Awarded:</strong> <span class="amount-tag">'+esc(e.sanction_types.amount_awarded)+'</span></div>';
+        if(e.sanction_types.amount_sought) html+='<div style="margin-top:8px;font-size:13px;"><strong>Amount Sought:</strong> <span class="amount-tag">$'+Number(e.sanction_types.amount_sought).toLocaleString()+'</span></div>';
+        if(e.sanction_types.amount_awarded) html+='<div style="margin-top:4px;font-size:13px;"><strong>Amount Awarded:</strong> <span class="amount-tag">$'+Number(e.sanction_types.amount_awarded).toLocaleString()+'</span></div>';
       });
     }
     html+='</div>';
@@ -1346,14 +1374,15 @@ fetch(DATA_BASE + '/explorer_data.json')
 
     // Populate filters
     var stateSet={},tagSet={},judgeSet={};
-    var nStanding=0,nSanctions=0,nDisclose=0,nOpinions=0;
+    var nStanding=0,nSanctionsAtty=0,nSanctionsParty=0,nDisclose=0,nOpinions=0;
     data.forEach(function(d){
       if(d.state)stateSet[d.state]=1;
       if(d.judge)judgeSet[d.judge]=1;
       if(Array.isArray(d.applicableTo))d.applicableTo.forEach(function(t){tagSet[t]=1;});
       if(d.type==='Standing Order'||d.type==='Local Rules'||d.type==='Administrative Order')nStanding++;
       if(d.type==='Judicial Opinion')nOpinions++;
-      if(d.consequence==='sanctions_attorney'||d.consequence==='sanctions_party')nSanctions++;
+      if(d.sanctions_outcome==='sanctions_attorney')nSanctionsAtty++;
+      if(d.sanctions_outcome==='sanctions_party')nSanctionsParty++;
       if(d.reqs&&d.reqs.disclose)nDisclose++;
     });
     var sel=document.getElementById('fState');
@@ -1382,7 +1411,8 @@ fetch(DATA_BASE + '/explorer_data.json')
       {label:'All Orders',count:data.length,filter:function(){resetFilters();}},
       {label:'Standing Orders',count:nStanding,filter:function(){resetFilters();document.getElementById('fType').value='Standing Order';}},
       {label:'Opinions',count:nOpinions,filter:function(){resetFilters();document.getElementById('fType').value='Judicial Opinion';}},
-      {label:'Sanctions',count:nSanctions,filter:function(){resetFilters();document.getElementById('fOutcome').value='sanctions_attorney';}},
+      {label:'Sanctions (Attorney)',count:nSanctionsAtty,filter:function(){resetFilters();document.getElementById('fOutcome').value='sanctions_attorney';}},
+      {label:'Sanctions (Pro Se)',count:nSanctionsParty,filter:function(){resetFilters();document.getElementById('fOutcome').value='sanctions_party';}},
       {label:'Requires Disclosure',count:nDisclose,filter:function(){resetFilters();chips.add('req_disclose');var c=document.querySelector('.chip[data-f="req_disclose"]');if(c)c.classList.add('on');}}
     ];
     var catEl=document.getElementById('exCategories');
@@ -1440,6 +1470,24 @@ fetch(DATA_BASE + '/explorer_data.json')
 
 
 
+// Detect fixed nav (Grav CMS) and set CSS custom property for bipanel offset
+(function(){
+  function detectNav(){
+    var navH=0;
+    document.querySelectorAll('section.section').forEach(function(s){
+      var cs=getComputedStyle(s);
+      if((cs.position==='fixed'||cs.position==='sticky')&&s.offsetHeight>0)navH=Math.max(navH,s.offsetHeight);
+    });
+    if(!navH){var gn=document.querySelector('.navbar-fixed-top,.fixed-top');if(gn)navH=gn.offsetHeight;}
+    if(navH){
+      document.querySelector('.ex-bipanel').style.setProperty('--nav-h',navH+'px');
+      var gf=document.getElementById('footer');if(gf)gf.style.display='none';
+    }
+  }
+  setTimeout(detectNav,50);
+  window.addEventListener('resize',detectNav);
+})();
+
 // Sticky filter bar shadow
 (function(){
   var filters=document.getElementById('exFilters');
@@ -1447,7 +1495,7 @@ fetch(DATA_BASE + '/explorer_data.json')
     var parent=filters.parentElement;
     function checkScroll(){
       var rect=filters.getBoundingClientRect();
-      if(rect.top<=0&&parent.scrollTop>0){filters.classList.add('scrolled');}
+      if(parent.scrollTop>0){filters.classList.add('scrolled');}
       else{filters.classList.remove('scrolled');}
     }
     window.addEventListener('scroll',checkScroll,{passive:true});
