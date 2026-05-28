@@ -358,9 +358,9 @@ html { scroll-behavior: auto !important; }
     <div style="font-size:32px;margin-bottom:12px;opacity:0.3">&#x2696;</div>
     <div style="font-size:15px;margin-bottom:16px">Search for a judge or click from the list</div>
     <div style="text-align:left;max-width:280px;margin:0 auto;font-size:13px;color:#94a3b8;line-height:1.8">
-      <div><strong style="color:#2563eb">175</strong> standing orders tracked</div>
-      <div><strong style="color:#dc2626">201</strong> sanctions cases documented</div>
-      <div><strong style="color:#475569">59</strong> jurisdictions covered</div>
+      <div><strong style="color:#2563eb" id="emptyStanding">…</strong> standing orders tracked</div>
+      <div><strong style="color:#dc2626" id="emptySanctions">…</strong> sanctions cases documented</div>
+      <div><strong style="color:#475569" id="emptyJurisdictions">…</strong> jurisdictions covered</div>
       <div style="margin-top:8px;font-size:12px;color:#cbd5e1">Search by judge, court, state, or case name</div>
     </div>
   </div></div>
@@ -678,25 +678,37 @@ function buildMap(){
   });
 }
 
-function renderStats(){
-  var so=0,op=0,sn=0,wn=0,states=new Set();
+function countStats(){
+  var so=0,sn=0,wn=0,states=new Set();
   DATA.forEach(function(d){
     if(d.type==='Standing Order'||d.type==='Local Rules'||d.type==='Administrative Order')so++;
-    if(d.type==='Judicial Opinion')op++;
     if(d.consequence==='sanctions_attorney'||d.consequence==='sanctions_party')sn++;
     if(d.consequence==='warning')wn++;
     if(d.state)states.add(d.state);
   });
-  document.getElementById('judgesTabBtn').textContent='Judges ('+DATA.length+')';
+  return {standing:so,sanctions:sn,warnings:wn,jurisdictions:states.size,total:DATA.length};
+}
+
+function emptyDetailHtml(){
+  var s=countStats();
+  return '<div class="d-empty"><div style="font-size:32px;margin-bottom:12px;opacity:0.3">&#x2696;</div><div style="font-size:15px;margin-bottom:16px">Search for a judge or click from the list</div><div style="text-align:left;max-width:280px;margin:0 auto;font-size:13px;color:#94a3b8;line-height:1.8"><div><strong style="color:#2563eb">'+s.standing+'</strong> standing orders tracked</div><div><strong style="color:#dc2626">'+s.sanctions+'</strong> sanctions cases documented</div><div><strong style="color:#475569">'+s.jurisdictions+'</strong> jurisdictions covered</div><div style="margin-top:8px;font-size:12px;color:#cbd5e1">Search by judge, court, state, or case name</div></div></div>';
+}
+
+function renderStats(){
+  var s=countStats();
+  document.getElementById('judgesTabBtn').textContent='Judges ('+s.total+')';
   document.getElementById('exStats').style.display='flex';
   var latestDate='';DATA.forEach(function(d){if(d.date&&d.date>latestDate)latestDate=d.date;});
   if(latestDate){var ud=document.getElementById('exLastUpdated');if(ud)ud.textContent='Data current through '+fmtDate(latestDate);}
   document.getElementById('exStats').innerHTML=
-    '<div class="ex-stat info"><div class="num">'+so+'</div><div class="label">Standing Orders</div></div>'+
-    '<div class="ex-stat"><div class="num">'+states.size+'</div><div class="label">Jurisdictions</div></div>'+
-    '<div class="ex-stat warn"><div class="num">'+wn+'</div><div class="label">Warnings Issued</div></div>'+
-    '<div class="ex-stat danger"><div class="num">'+sn+'</div><div class="label">Sanctions Cases</div></div>'+
-    '<div class="ex-stat"><div class="num">'+DATA.length+'</div><div class="label">Total Orders</div></div>';
+    '<div class="ex-stat info"><div class="num">'+s.standing+'</div><div class="label">Standing Orders</div></div>'+
+    '<div class="ex-stat"><div class="num">'+s.jurisdictions+'</div><div class="label">Jurisdictions</div></div>'+
+    '<div class="ex-stat warn"><div class="num">'+s.warnings+'</div><div class="label">Warnings Issued</div></div>'+
+    '<div class="ex-stat danger"><div class="num">'+s.sanctions+'</div><div class="label">Sanctions Cases</div></div>'+
+    '<div class="ex-stat"><div class="num">'+s.total+'</div><div class="label">Total Orders</div></div>';
+  var es=document.getElementById('emptyStanding');if(es)es.textContent=s.standing;
+  var esn=document.getElementById('emptySanctions');if(esn)esn.textContent=s.sanctions;
+  var ej=document.getElementById('emptyJurisdictions');if(ej)ej.textContent=s.jurisdictions;
 }
 
 function applyFilters(){
@@ -803,7 +815,7 @@ function applyFilters(){
         if(groups[i].judge===selJudge){renderJudgeDetail(groups[i]);found=true;break;}
       }
     }
-    if(!found){document.getElementById('exDetail').innerHTML='<div class="d-empty"><div style="font-size:32px;margin-bottom:12px;opacity:0.3">&#x2696;</div><div style="font-size:15px;margin-bottom:16px">Search for a judge or click from the list</div><div style="text-align:left;max-width:280px;margin:0 auto;font-size:13px;color:#94a3b8;line-height:1.8"><div><strong style="color:#2563eb">175</strong> standing orders tracked</div><div><strong style="color:#dc2626">201</strong> sanctions cases documented</div><div><strong style="color:#475569">59</strong> jurisdictions covered</div><div style="margin-top:8px;font-size:12px;color:#cbd5e1">Search by judge, court, state, or case name</div></div></div>';selJudge=null;}
+    if(!found){document.getElementById('exDetail').innerHTML=emptyDetailHtml();selJudge=null;}
   } else {
     selJudge=null;
     document.getElementById('exDetail').innerHTML='<div class="d-empty">No results match your filters</div>';
