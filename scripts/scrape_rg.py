@@ -226,6 +226,66 @@ def slug_to_state_name(slug):
     return slug.replace('-', ' ').title()
 
 
+def normalize_entry(raw, state_name, state_slug):
+    """Normalize a raw HTML-table row into a consistent schema."""
+    court_judge = raw.get('Court -\nJudge Name', raw.get('Court - Judge Name', ''))
+    if isinstance(court_judge, dict):
+        name = court_judge.get('text', '')
+        link = court_judge.get('href', '')
+    else:
+        name = str(court_judge)
+        link = ''
+
+    sep_m = re.search(r'\s+[-–—]\s+', name)
+    if sep_m:
+        court = name[:sep_m.start()].strip()
+        judge = name[sep_m.end():].strip()
+    else:
+        court = name
+        judge = ''
+
+    date_raw = raw.get('Effective Date', '')
+    if isinstance(date_raw, dict):
+        date_raw = date_raw.get('text', '')
+    date_ym = ''
+    m = re.match(r'(\d{1,2})/(\d{1,2})/(\d{4})', str(date_raw))
+    if m:
+        date_ym = f"{m.group(3)}-{int(m.group(1)):02d}"
+
+    cats_raw = raw.get('Categories', '')
+    if isinstance(cats_raw, dict):
+        cats_raw = cats_raw.get('text', '')
+    categories = [c.strip() for c in str(cats_raw).split(';') if c.strip()]
+
+    applicable_to = raw.get('Applicable To', '')
+    if isinstance(applicable_to, dict):
+        applicable_to = applicable_to.get('text', '')
+
+    summary = raw.get('Summary', '')
+    if isinstance(summary, dict):
+        summary = summary.get('text', '')
+    summary = re.sub(r'<[^>]+>', '', str(summary)).strip()
+
+    if not link:
+        for v in raw.values():
+            if isinstance(v, dict) and v.get('href'):
+                link = v['href']
+                break
+
+    return {
+        'name': name,
+        'judge': judge,
+        'court': court,
+        'date': date_ym,
+        'state': state_name,
+        'state_slug': state_slug,
+        'applicable_to': str(applicable_to),
+        'categories': categories,
+        'summary': summary,
+        'link': link,
+    }
+
+
 def main():
     build_id, state_slugs, cookies = fetch_with_playwright()
 
@@ -248,17 +308,13 @@ def main():
         print(f"[{i+1}/{len(state_slugs)}] Fetching {state_name}...")
         rows = fetch_state_data(build_id, slug, cookies, session)
         for row in rows:
-            row['_state'] = state_name
-            row['_state_slug'] = slug
-        all_entries.extend(rows)
+            all_entries.append(normalize_entry(row, state_name, slug))
         time.sleep(0.2)
 
     print(f"Fetching federal circuit decisions...")
     fed_rows = fetch_federal_data(build_id, cookies, session)
     for row in fed_rows:
-        row['_state'] = 'Federal'
-        row['_state_slug'] = 'federal-circuit-decisions'
-    all_entries.extend(fed_rows)
+        all_entries.append(normalize_entry(row, 'Federal', 'federal-circuit-decisions'))
 
     print(f"\nTotal entries scraped: {len(all_entries)}")
 

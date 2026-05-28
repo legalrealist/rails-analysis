@@ -90,7 +90,7 @@
       "opinion_title": null,
       "citation": null,
       "opinion_date": "",
-      "summary": "Arizona has no formal AEAC ethics opinion on AI but has layered guidance: State Bar practice guidance, AISC \"Ethical Best Practices for Lawyers and Judges\" (Nov 2024), binding ACJA § 1-509 governing court personnel use of AI (effective Oct 2024), and a first-in-the-nation explicit judicial technology competence rule (Code of Judicial Conduct Rule 2.5 Comment 1, effective Jan 2026). Arizona's ABS program also allows AI-native legal services companies to operate as licensed providers.",
+      "summary": "Arizona has no formal AEAC ethics opinion on AI but has layered guidance: State Bar practice guidance, AISC \"Ethical Best Practices for Lawyers and Judges\" (Nov 2024), binding ACJA \u00a7 1-509 governing court personnel use of AI (effective Oct 2024), and a first-in-the-nation explicit judicial technology competence rule (Code of Judicial Conduct Rule 2.5 Comment 1, effective Jan 2026). Arizona's ABS program also allows AI-native legal services companies to operate as licensed providers.",
       "key_rules": [
         "1.1",
         "1.2",
@@ -852,7 +852,7 @@
       "opinion_title": null,
       "citation": null,
       "opinion_date": "",
-      "summary": "Maine has no formal or informal bar ethics opinion on attorney AI use, and neither the Maine Supreme Judicial Court nor the U.S. District Court for the District of Maine has issued AI-specific standing orders. Maine has separately enacted a consumer-facing AI chatbot disclosure law (10 M.R.S. § 1500-DD, effective September 23, 2025) that applies to law firms using AI in client-facing communications, and a state AI Task Force issued a 34-recommendation policy report in October 2025.",
+      "summary": "Maine has no formal or informal bar ethics opinion on attorney AI use, and neither the Maine Supreme Judicial Court nor the U.S. District Court for the District of Maine has issued AI-specific standing orders. Maine has separately enacted a consumer-facing AI chatbot disclosure law (10 M.R.S. \u00a7 1500-DD, effective September 23, 2025) that applies to law firms using AI in client-facing communications, and a state AI Task Force issued a 34-recommendation policy report in October 2025.",
       "key_rules": [
         "1.1",
         "1.4",
@@ -862,7 +862,7 @@
         "5.1",
         "5.3"
       ],
-      "key_authority": "ABA Formal Opinion 512 (July 2024) as persuasive authority; 10 M.R.S. § 1500-DD (effective 2025-09-23) for client-facing AI disclosure",
+      "key_authority": "ABA Formal Opinion 512 (July 2024) as persuasive authority; 10 M.R.S. \u00a7 1500-DD (effective 2025-09-23) for client-facing AI disclosure",
       "carrier_implications": "Maine does not require attorneys to carry malpractice insurance. Carriers including ALPS factor AI use into underwriting; the W.R. Berkley \"absolute AI exclusion\" (2025-2026 E&O filings) eliminates coverage for claims arising from AI use without a verification carve-back. The 2026-2027 renewal cycle is the practical moment many Maine firms will face AI underwriting questions.",
       "rule_notes": {},
       "source_urls": [
