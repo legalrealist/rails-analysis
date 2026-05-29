@@ -1,6 +1,6 @@
 # AI Court Orders — Data Pipeline & Analysis
 
-Data pipeline for tracking court orders and opinions on AI use in legal proceedings. Powers the [AI Court Orders Explorer](https://legalhack.io/en/data/ai-court-orders) on legalhack.io.
+Data pipeline for tracking court orders and opinions on AI use in legal proceedings. Powers the [AI Court Orders Explorer](https://legalhack.io/explorer) on legalhack.io.
 
 ## Data Sources
 
