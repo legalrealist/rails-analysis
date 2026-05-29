@@ -38,29 +38,6 @@ python3 scripts/update.py --backfill  # one-time: replace Lexis links across ALL
 - **`charts/*.html`** — standalone Plotly charts
 - Generated intermediates/logs in `data/processed/` (batch files, `cl_review.json`, search queues, etc.) are gitignored.
 
-## Deployment
-
-The explorer and the main site deploy by **two independent paths** to Hostinger (shared hosting, hPanel):
-
-```
-This repo (AI-orders-explorer)                 legalhack.io repo (Grav site)
-  charts/ + data + index.html + .htaccess        user/pages, themes, index.php
-        │                                                │
-   hPanel Git (manual "Deploy")                    deploy.sh  (rsync over SSH)
-        ▼                                                ▼
-  legalhack.io/explorer                          legalhack.io  (rest of the Grav site)
-```
-
-**Explorer → `legalhack.io/explorer`** (this repo):
-- hPanel → Websites → legalhack.io → Advanced → GIT → repo `AI-orders-explorer`, branch `main`, install path `public_html/explorer`, then click **Deploy**.
-- `index.html` redirects `/explorer/` → `charts/explorer.html`; `.htaccess` serves only the app and blocks `scripts/`, `data/`, source files.
-- Data ships in the repo (`charts/data/`), so a Deploy publishes data + app together.
-
-**Grav site → `legalhack.io`** (the *other* repo + a local script):
-- The Grav site lives in a separate repo (`legalrealist/legalhack.io`, a backup mirror) and is pushed to Hostinger by `deploy.sh`, which lives in the **legalhack project root** (`/Users/hao/legalhack/deploy.sh`) — **not committed** (contains the server address). It rsyncs `public_html/` to Hostinger, **excludes `/explorer`** (managed by hPanel Git) and server-owned runtime (`cache/`, `logs/`, etc.), and takes a snapshot backup first.
-
-**End-to-end after a data update:** run `update.py` → commit & push this repo → click **Deploy** in hPanel. Landing-page order counts read live from `/explorer/charts/data/explorer_data.json`.
-
 ## Hosting note: brand header
 
 `charts/explorer.html` includes an optional **legalhack.io brand header** (logo + site nav) at the top of `<body>`, marked by the comment block:
