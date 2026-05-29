@@ -4,5 +4,18 @@ __pycache__/
 *.pyc
 .env
 
-# Generated review log (CourtListener cross-check), not source
+# Generated pipeline intermediates / logs (not source). Final outputs
+# (explorer_data.json, bar_opinions.json), the *_clean.csv sources, and
+# enrichments/examples.json few-shot file stay tracked.
 data/processed/cl_review.json
+data/processed/cl_links.json
+data/processed/cl_links.json.bak
+data/processed/*_no_match.json
+data/processed/search_queue.json
+data/processed/search_tasks.json
+data/processed/browser_search_queue.json
+data/processed/dedup_analysis.json
+data/processed/*_report.txt
+data/processed/sanction_types_batch_*.json
+data/processed/enrichments/batch_*.json
+data/processed/enrichments/input_batch_*.json

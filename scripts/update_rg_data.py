@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 """
+DEPRECATED — not the canonical pipeline. `scripts/update.py` is the
+canonical R&G → explorer_data pipeline (run by scripts/weekly_update.sh)
+and already includes the dedup / full-date fixes from this script.
+Kept for reference only; do not run for production updates.
+
 Fetch court orders from the Ropes & Gray AI Court Order Tracker API
 and merge them into explorer_data.json.
 

@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 """
+EXPERIMENTAL — not part of the deploy pipeline and not run by
+weekly_update.sh. CourtListener self-discovery was evaluated and found
+to mostly re-surface orders the R&G feed already provides, so it isn't
+used in production. Kept for reference. (Imports helpers from the
+deprecated update_rg_data.py.)
+
 Self-discovery of new AI court orders (judicial opinions) via CourtListener
 full-text search — independent of the Ropes & Gray API.
 
