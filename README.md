@@ -28,8 +28,6 @@ python3 scripts/update.py --backfill  # one-time: replace Lexis links across ALL
 4. Writes `data/processed/explorer_data.json` **and** mirrors it to `charts/data/explorer_data.json` (the deploy source)
 5. Runs a CourtListener cross-check and logs possible-missing cases to `data/processed/cl_review.json` (review queue — not auto-merged)
 
-> `scripts/update_rg_data.py` (DEPRECATED) and `scripts/discover_orders.py` (EXPERIMENTAL) are kept for reference only — **do not use them**; `update.py` is canonical.
-
 ## Output
 
 - **`data/processed/explorer_data.json`** — court orders & opinions for the explorer (also mirrored to `charts/data/`)
