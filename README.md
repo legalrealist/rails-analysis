@@ -32,6 +32,16 @@ python3 scripts/update.py --cl-check
 - **`data/processed/cl_review.json`** — CourtListener entries flagged for review (if `--cl-check`)
 - **`charts/`** — Standalone Plotly HTML charts (cumulative growth, sanctions timeline, orders by state, etc.)
 
+## Hosting note: brand header
+
+`charts/explorer.html` includes an optional **legalhack.io brand header** (logo + site nav) at the top of `<body>`, marked by the comment block:
+
+```
+<!-- legalhack.io BRAND HEADER (optional) ... -->  …  <!-- END legalhack.io BRAND HEADER -->
+```
+
+It's self-contained (inline styles) and references the site logo by absolute path, so it only renders correctly when hosted on legalhack.io. **To run the explorer standalone elsewhere, delete that block.**
+
 ## License
 
 Data sourced from public court records via [Legal AI Governance](https://legalaigovernance.com/) and [CourtListener](https://www.courtlistener.com/). Scripts and analysis are open source.
