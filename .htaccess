@@ -1,0 +1,20 @@
+# AI Court Orders Explorer — when deployed as a web subdirectory (e.g.
+# legalhack.io/explorer), serve only the app and hide repo internals.
+
+# No directory listings
+Options -Indexes
+
+# Load the explorer at the directory root
+DirectoryIndex index.html charts/explorer.html
+
+# Block the source/tooling directories from being served
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(scripts|data)/ - [R=404,L]
+  RewriteRule (^|/)\.git - [R=404,L]
+</IfModule>
+
+# Block source/config file types anywhere (charts/*.html and *.json stay served)
+<FilesMatch "\.(py|sh|md|lock|toml|cfg|yml|yaml)$">
+  Require all denied
+</FilesMatch>
