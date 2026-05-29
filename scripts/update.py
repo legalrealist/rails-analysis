@@ -9,12 +9,14 @@ Usage:
     export OPENROUTER_API_KEY="your-key"
     export CL_API_KEY="your-key"          # optional
     python3 scripts/update.py
+    python3 scripts/update.py --backfill  # one-time: replace all existing Lexis links with CL
 """
 
 import json
 import os
 import re
 import ssl
+import sys
 import time
 import urllib.request
 import urllib.parse
@@ -44,7 +46,7 @@ Output a single JSON object with these fields:
 - "court": Court abbreviation or short name (e.g. "D. Colo.", "N.D. Ill.", "Supreme Court of Montana"). Use the most specific/abbreviated form from the court array.
 - "state": Full state name (e.g. "Montana", "New York"). For DC variants use "District of Columbia". For empty state with federal circuit courts, use "Federal".
 - "state_abbr": Standard 2-letter postal abbreviation (e.g. "MT", "NY", "DC", "PR", "GU", "MP"). Use "FED" for federal circuits with no state.
-- "date": Format as "YYYY-MM" from the effectiveDate field. If effectiveDate is null or "0001-01-01", return "".
+- "date": Format as "YYYY-MM-DD" from the effectiveDate field (keep the full day). If effectiveDate is null or "0001-01-01", return "".
 - "type": One of: "Standing Order", "Judicial Opinion", "Local Rules", "Administrative Order", "Practice Direction". Use "Judicial Opinion" if the summary describes a specific case (mentions parties, "v.", ruling). Use "Standing Order" for court-wide directives. Use "Local Rules" for rule amendments.
 - "ai_type": "Any AI" if applicableTo includes "Any AI Usage", otherwise "Gen AI".
 - "applies_to": Comma-separated from: "Attorneys", "Any Parties". Use "Attorneys" if consequences target attorneys/law firms. Use "Any Parties" if consequences target parties. Default to "Attorneys" if unclear.
@@ -75,6 +77,216 @@ def _ssl_ctx():
 
 SSL_CTX = _ssl_ctx()
 
+CL_DELAY = 20
+
+COURT_MAP = {
+    'D. Or.': 'ord', 'E.D. Mich.': 'mied', 'W.D. Mich.': 'miwd',
+    'E.D. Tex.': 'txed', 'C.D. Cal.': 'cacd', 'S.D. Fla.': 'flsd',
+    'N.D. Ill.': 'ilnd', 'C.D. Ill.': 'ilcd', 'S.D. Ill.': 'ilsd',
+    'S.D.N.Y.': 'nysd', 'E.D.N.Y.': 'nyed', 'N.D. Cal.': 'cand',
+    'E.D. Cal.': 'caed', 'S.D. Cal.': 'casd',
+    'D.N.J.': 'njd', 'E.D. Pa.': 'paed', 'W.D. Pa.': 'pawd', 'M.D. Pa.': 'pamd',
+    'D. Md.': 'mdd', 'S.D. Tex.': 'txsd', 'N.D. Tex.': 'txnd', 'W.D. Tex.': 'txwd',
+    'D. Ariz.': 'azd', 'D. Colo.': 'cod', 'D. Conn.': 'ctd',
+    'M.D. Fla.': 'flmd', 'N.D. Fla.': 'flnd',
+    'S.D. Ind.': 'insd', 'N.D. Ind.': 'innd',
+    'D. Kan.': 'ksd', 'E.D. La.': 'laed', 'W.D. La.': 'lawd', 'M.D. La.': 'lamd',
+    'D. Mass.': 'mad', 'D. Minn.': 'mnd',
+    'S.D. Miss.': 'mssd', 'N.D. Miss.': 'msnd',
+    'E.D. Mo.': 'moed', 'W.D. Mo.': 'mowd',
+    'D. Nev.': 'nvd', 'D.N.M.': 'nmd',
+    'W.D.N.Y.': 'nywd', 'N.D.N.Y.': 'nynd',
+    'M.D.N.C.': 'ncmd', 'W.D.N.C.': 'ncwd', 'E.D.N.C.': 'nced',
+    'N.D. Ohio': 'ohnd', 'S.D. Ohio': 'ohsd',
+    'W.D. Okla.': 'okwd', 'E.D. Okla.': 'oked', 'N.D. Okla.': 'oknd',
+    'D.S.C.': 'scd',
+    'M.D. Tenn.': 'tnmd', 'W.D. Tenn.': 'tnwd', 'E.D. Tenn.': 'tned',
+    'E.D. Va.': 'vaed', 'W.D. Va.': 'vawd',
+    'E.D. Wis.': 'wied', 'W.D. Wis.': 'wiwd',
+    'D. Utah': 'utd', 'D.D.C.': 'dcd',
+    'M.D. Ga.': 'gamd', 'N.D. Ga.': 'gand', 'S.D. Ga.': 'gasd',
+    'D. Haw.': 'hid',
+    'S.D. Ala.': 'alsd', 'S.D. Ala': 'alsd',
+    'M.D. Ala.': 'almd', 'N.D. Ala.': 'alnd',
+    'E.D. Ark.': 'ared', 'W.D. Ark.': 'arwd',
+    'D. Del.': 'ded', 'D. Idaho': 'idd',
+    'S.D. Iowa': 'iasd', 'N.D. Iowa': 'iand',
+    'E.D. Ky.': 'kyed', 'W.D. Ky.': 'kywd',
+    'D. Me.': 'med', 'D. Mont.': 'mtd', 'D. Neb.': 'ned', 'D.N.H.': 'nhd',
+    'D.R.I.': 'rid', 'D.S.D.': 'sdd', 'D. Vt.': 'vtd',
+    'E.D. Wash.': 'waed', 'W.D. Wash.': 'wawd',
+    'S.D.W. Va.': 'wvsd', 'N.D.W. Va.': 'wvnd',
+    'D. Wyo.': 'wyd', 'D.V.I.': 'vid',
+    'Bankr. D. Colo.': 'cob',
+    '1st Cir.': 'ca1', '2d Cir.': 'ca2', '2nd Cir.': 'ca2',
+    '3d Cir.': 'ca3', '3rd Cir.': 'ca3', '4th Cir.': 'ca4',
+    '5th Cir.': 'ca5', '6th Cir.': 'ca6', '7th Cir.': 'ca7',
+    '8th Cir.': 'ca8', '9th Cir.': 'ca9', '10th Cir.': 'ca10',
+    '11th Cir.': 'ca11', 'D.C. Cir.': 'cadc', 'Fed. Cir.': 'cafc',
+    'Fed. Cl.': 'uscfc', 'Tax Ct.': 'tax',
+    'Del. Ch.': 'dech', 'N.Y. Sup. Ct.': 'nysupct',
+    'Ind. Ct. App.': 'indctapp', 'Cal. Ct. App.': 'calctapp',
+    'Or. Ct. App.': 'orctapp', 'Md. App. Ct.': 'mdctspecapp',
+    'Mo. Ct. App.': 'moctapp', 'Ill. App. Ct.': 'illappct',
+    'Ga. Ct. App.': 'gactapp',
+}
+
+
+def get_court_id(court_str):
+    if not court_str:
+        return None
+    if court_str in COURT_MAP:
+        return COURT_MAP[court_str]
+    for key, val in sorted(COURT_MAP.items(), key=lambda x: -len(x[0])):
+        if key in court_str:
+            return val
+    return None
+
+
+def extract_case_name(entry):
+    summary = entry.get('summary', '')
+    name = entry.get('name', '')
+    m = re.search(r'In\s+(.+?),\s+(?:No\.|the |Judge |Chief |Magistrate |\d{4})', summary)
+    if m:
+        cn = m.group(1).strip()
+        cn = re.sub(r'\s*\d{4}\s+(?:U\.S\.|Fla\.|N\.C\.|Ill\.|Cal\.|Or\.|Ind\.).*$', '', cn)
+        if len(cn) > 5:
+            return cn
+    m = re.search(r'In\s+(.+?),', summary)
+    if m:
+        cn = m.group(1).strip()
+        if ' v. ' in cn or ' v ' in cn:
+            cn = re.sub(r'\s*\d{4}\s+(?:U\.S\.|Fla\.|N\.C\.).*$', '', cn)
+            if len(cn) > 5:
+                return cn
+    if name and (' v. ' in name or ' v ' in name):
+        return name.strip()
+    return None
+
+
+def extract_docket_number(entry):
+    summary = entry.get('summary', '')
+    m = re.search(r'No\.\s*(\d+:\d+-(?:cv|cr|mc|mj)-\d+)', summary)
+    if m:
+        return m.group(1)
+    m = re.search(r'(\d+:\d+-(?:cv|cr|mc|mj)-\d+)', summary)
+    if m:
+        return m.group(1)
+    return None
+
+
+def cl_api_get(url):
+    try:
+        req = urllib.request.Request(url, headers={
+            'Authorization': f'Token {CL_API_KEY}',
+            'User-Agent': 'AI-Orders-Explorer/2.0',
+        })
+        with urllib.request.urlopen(req, context=SSL_CTX, timeout=20) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            return 'RATE_LIMITED'
+        elif e.code == 400:
+            return None
+        else:
+            print(f"    HTTP {e.code}", end=' ')
+            return None
+    except Exception as e:
+        print(f"    ERR:{e}", end=' ')
+        return None
+
+
+def cl_search_link(search_type, case_name=None, docket_number=None, court_id=None):
+    params = {'type': search_type, 'format': 'json', 'page_size': '3'}
+    if search_type == 'd':
+        if docket_number:
+            params['docket_number'] = docket_number
+        if case_name:
+            params['case_name'] = case_name
+        if court_id:
+            params['court'] = court_id
+    else:
+        if case_name:
+            params['case_name'] = case_name
+        if court_id:
+            params['court'] = court_id
+
+    url = f"https://www.courtlistener.com/api/rest/v4/search/?{urllib.parse.urlencode(params)}"
+
+    for attempt in range(3):
+        result = cl_api_get(url)
+        if result == 'RATE_LIMITED':
+            wait = 30 * (2 ** attempt)
+            print(f"    429->wait {wait}s", end=' ')
+            sys.stdout.flush()
+            time.sleep(wait)
+            continue
+        if result and isinstance(result, dict) and result.get('results'):
+            r = result['results'][0]
+            if search_type == 'd':
+                docket_url = r.get('docket_absolute_url', '')
+                if docket_url:
+                    return f"https://www.courtlistener.com{docket_url}"
+                did = r.get('docket_id')
+                if did:
+                    slug = re.sub(r'[^a-z0-9-]', '', r.get('caseName', '').lower().replace(' ', '-'))[:50]
+                    return f"https://www.courtlistener.com/docket/{did}/{slug}/"
+            else:
+                abs_url = r.get('absolute_url', '')
+                if abs_url:
+                    return f"https://www.courtlistener.com{abs_url}"
+        return None
+    return None
+
+
+def replace_lexis_links(entries):
+    if not CL_API_KEY:
+        print('  SKIP: CL_API_KEY not set — keeping Lexis links')
+        return 0
+
+    lexis = [(i, e) for i, e in enumerate(entries)
+             if e.get('link', '').startswith('https://advance.lexis.com')]
+    if not lexis:
+        print('  No Lexis links to replace')
+        return 0
+
+    print(f'  Searching CL for {len(lexis)} Lexis links...')
+    replaced = 0
+    for n, (i, entry) in enumerate(lexis):
+        case_name = extract_case_name(entry)
+        docket_num = extract_docket_number(entry)
+        court_id = get_court_id(entry.get('court', ''))
+        cl_url = None
+
+        sys.stdout.write(f'    [{n+1}/{len(lexis)}] {entry.get("name","")[:45]} ')
+        sys.stdout.flush()
+
+        if docket_num and not cl_url:
+            cl_url = cl_search_link('d', docket_number=docket_num, court_id=court_id)
+            time.sleep(CL_DELAY)
+
+        if case_name and court_id and not cl_url:
+            cl_url = cl_search_link('d', case_name=case_name, court_id=court_id)
+            time.sleep(CL_DELAY)
+
+        if case_name and not cl_url:
+            cl_url = cl_search_link('o', case_name=case_name, court_id=court_id)
+            time.sleep(CL_DELAY)
+
+        if case_name and court_id and not cl_url:
+            cl_url = cl_search_link('o', case_name=case_name)
+            time.sleep(CL_DELAY)
+
+        if cl_url:
+            entry['link'] = cl_url
+            replaced += 1
+            print(f'-> CL')
+        else:
+            print(f'X')
+
+    print(f'  Replaced {replaced}/{len(lexis)} Lexis -> CL links')
+    return replaced
+
 
 def fetch_json(url):
     req = urllib.request.Request(url, headers={'User-Agent': 'AI-Orders-Explorer/2.0'})
@@ -101,7 +313,7 @@ def validate_entry(entry):
     if entry.get('consequence', '') not in VALID_CONSEQUENCES:
         errors.append(f'invalid consequence: {entry.get("consequence")}')
     d = entry.get('date', '')
-    if d and not re.match(r'^\d{4}-\d{2}$', d):
+    if d and not re.match(r'^\d{4}-\d{2}(-\d{2})?$', d):
         errors.append(f'invalid date format: {d}')
     sa = entry.get('state_abbr', '')
     if not sa or not re.match(r'^[A-Z]{2,3}$', sa):
@@ -155,7 +367,7 @@ def fallback_convert_entry(item, idx):
     court_str = courts[-1].split(' - ', 1)[-1].strip() if courts else ''
 
     eff_date = item.get('effectiveDate', '')
-    date_ym = eff_date[:7] if eff_date and not eff_date.startswith('0001') else ''
+    date_ym = eff_date[:10] if eff_date and not eff_date.startswith('0001') else ''
 
     categories = item.get('applicableTo', [])
     cat_set = set(categories)
@@ -310,12 +522,26 @@ def main():
         existing = []
     print(f'\nBaseline: {len(existing)} entries')
 
-    max_date = max((e.get('date', '') for e in existing), default='')
+    # 1b. Backfill CL links for existing Lexis entries (one-time)
+    backfill_replaced = 0
+    if '--backfill' in sys.argv:
+        print('\nBackfilling CL links for existing Lexis entries...')
+        backfill_replaced = replace_lexis_links(existing)
+        if backfill_replaced:
+            with open(EXPLORER_PATH, 'w') as f:
+                json.dump(existing, f, indent=2)
+            with open(os.path.join(CHARTS_DATA_DIR, 'explorer_data.json'), 'w') as f:
+                json.dump(existing, f, indent=2)
+            print(f'  Backfill saved: {backfill_replaced} links replaced')
+
+    # Compare/dedup on YYYY-MM so logic is robust whether stored dates are
+    # YYYY-MM or full YYYY-MM-DD (entries store full dates; see below).
+    max_date = max((e.get('date', '')[:7] for e in existing), default='')
     print(f'Latest date: {max_date or "(none)"}')
 
     existing_keys = set()
     for e in existing:
-        existing_keys.add((e.get('date', ''), e.get('state', ''), e.get('judge', '')))
+        existing_keys.add((e.get('date', '')[:7], e.get('state', ''), e.get('judge', '')))
 
     # 2. Fetch R&G data from Sitecore API
     print('Fetching R&G Sitecore API...')
@@ -387,6 +613,11 @@ def main():
                     print(f'    fallback OK: {entry.get("name","")[:55]}')
                 except Exception as e2:
                     print(f'    fallback also failed: {e2}')
+
+        # 4b. Replace Lexis links with CourtListener
+        if new_entries:
+            print('\nCL link replacement for new entries...')
+            replace_lexis_links(new_entries)
 
         # 5. Append, sort, re-index
         if new_entries:
