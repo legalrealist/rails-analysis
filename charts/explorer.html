@@ -1039,9 +1039,9 @@ function renderJudgeDetail(group){
     html+='</div>';
   }
 
-  // Chronological timeline — all entries sorted oldest→newest so practitioner sees history
-  var timeline=group.entries.slice().sort(function(a,b){ return parseDate(a.date)-parseDate(b.date); });
-  html+='<div class="d-section"><h3>History ('+timeline.length+' entries, oldest first)</h3>';
+  // Timeline — entries sorted newest→oldest (most recent order first)
+  var timeline=group.entries.slice().sort(function(a,b){ return parseDate(b.date)-parseDate(a.date); });
+  html+='<div class="d-section"><h3>History ('+timeline.length+' entries, newest first)</h3>';
   html+='<div class="jd-timeline">';
   timeline.forEach(function(d){
     var name=d.judge?(d.court?d.court+' – '+d.judge:d.judge):cleanJudgeName(d.name||d.type||'Entry');
