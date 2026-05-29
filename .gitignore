@@ -3,3 +3,6 @@
 __pycache__/
 *.pyc
 .env
+
+# Generated review log (CourtListener cross-check), not source
+data/processed/cl_review.json
