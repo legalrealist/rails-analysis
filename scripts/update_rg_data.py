@@ -30,8 +30,20 @@ except ImportError:
     _ssl_ctx.verify_mode = ssl.CERT_NONE
 
 # ── paths ────────────────────────────────────────────────────────────────────
-REPO_ROOT  = Path(__file__).resolve().parent.parent
-DATA_FILE  = REPO_ROOT / "public_html" / "assets" / "data" / "explorer_data.json"
+# The data file lives in different places depending on the tree:
+#   - source repo (AI-orders-explorer):  data/processed/explorer_data.json
+#   - deployed Grav site (legalhack):     public_html/assets/data/explorer_data.json
+# Resolve robustly so the script works from either, and allow an explicit override
+# via the EXPLORER_DATA env var. Prefers an existing file; falls back to the repo layout.
+REPO_ROOT = Path(__file__).resolve().parent.parent
+_DATA_CANDIDATES = [
+    REPO_ROOT / "data" / "processed" / "explorer_data.json",          # source repo
+    REPO_ROOT / "public_html" / "assets" / "data" / "explorer_data.json",  # deployed site
+]
+if "EXPLORER_DATA" in __import__("os").environ:
+    DATA_FILE = Path(__import__("os").environ["EXPLORER_DATA"])
+else:
+    DATA_FILE = next((p for p in _DATA_CANDIDATES if p.exists()), _DATA_CANDIDATES[0])
 
 # ── Ropes & Gray API ─────────────────────────────────────────────────────────
 RG_API     = "https://www.ropesgray.com/sitecore/api/CourtOrder/search"

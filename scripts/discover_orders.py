@@ -31,8 +31,9 @@ from update_rg_data import (        # noqa: E402
     make_match_key, format_date, DATA_FILE,
 )
 
-REPO_ROOT       = Path(__file__).resolve().parent.parent
-CANDIDATES_FILE = REPO_ROOT / "public_html" / "assets" / "data" / "discovered_candidates.json"
+# Write candidates next to the resolved data file, so output tracks whichever
+# tree DATA_FILE resolved to (source repo vs deployed site).
+CANDIDATES_FILE = DATA_FILE.parent / "discovered_candidates.json"
 
 CL_DELAY = 5  # seconds between API calls
 
